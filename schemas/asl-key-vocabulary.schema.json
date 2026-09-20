@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signspeak.local/schemas/asl-key-vocabulary.json",
+  "title": "SignSpeak Key Vocabulary Dictionary",
+  "description": "Curated isolated-sign vocabulary for the dedicated ASL recognizer (research / non-commercial). Gloss labels should align with WLASL class names when trained on WLASL.",
+  "type": "object",
+  "required": [
+    "version",
+    "licenseNotice",
+    "defaultConfidenceThreshold",
+    "signs"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "examples": [
+        "1.0.0"
+      ]
+    },
+    "licenseNotice": {
+      "type": "string",
+      "description": "Human-readable reminder that WLASL is C-UDA (computational/research, not commercial data use)."
+    },
+    "defaultConfidenceThreshold": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "If top dedicated-model confidence is below this, fall back to Gemini."
+    },
+    "model": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "architecture": {
+          "type": "string",
+          "examples": [
+            "tcn-landmarks",
+            "stgcn-lite"
+          ]
+        },
+        "checkpointPath": {
+          "type": "string"
+        },
+        "input": {
+          "type": "string",
+          "examples": [
+            "mediapipe-holistic-xyz"
+          ]
+        },
+        "numFrames": {
+          "type": "integer"
+        },
+        "numJoints": {
+          "type": "integer"
+        }
+      }
+    },
+    "signs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "gloss",
+          "english"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable id, often the WLASL gloss slug"
+          },
+          "gloss": {
+            "type": "string",
+            "description": "ASL gloss label used by the classifier"
+          },
+          "english": {
+            "type": "string",
+            "description": "Natural English meaning shown to users"
+          },
+          "aliases": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidenceThreshold": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Optional per-sign override of the default threshold"
+          },
+          "wlaslClassId": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "exampleVideoRefs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "source",
+                "ref"
+              ],
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "enum": [
+                    "wlasl",
+                    "local",
+                    "url"
+                  ]
+                },
+                "ref": {
+                  "type": "string",
+                  "description": "WLASL video id, local path, or URL"
+                },
+                "signer": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

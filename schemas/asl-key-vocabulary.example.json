@@ -1,0 +1,75 @@
+{
+  "version": "0.1.0",
+  "licenseNotice": "Trained with WLASL under C-UDA 1.0 (computational / research use only; not for commercial use of the dataset). How2Sign is CC BY-NC 4.0 if used later. This dictionary is for SignSpeak DECA research POC.",
+  "defaultConfidenceThreshold": 0.55,
+  "model": {
+    "name": "wlasl100-tcn-holistic",
+    "architecture": "tcn-landmarks",
+    "checkpointPath": "artifacts/wlasl100_tcn.pt",
+    "input": "mediapipe-holistic-xyz",
+    "numFrames": 64,
+    "numJoints": 75
+  },
+  "signs": [
+    {
+      "id": "hello",
+      "gloss": "hello",
+      "english": "Hello",
+      "aliases": [
+        "hi"
+      ],
+      "confidenceThreshold": 0.5,
+      "wlaslClassId": null,
+      "exampleVideoRefs": [
+        {
+          "source": "wlasl",
+          "ref": "REPLACE_WITH_WLASL_VIDEO_ID",
+          "signer": null
+        }
+      ],
+      "notes": "Replace wlaslClassId after subsetting WLASL-100."
+    },
+    {
+      "id": "thanks",
+      "gloss": "thanks",
+      "english": "Thank you",
+      "aliases": [
+        "thank you"
+      ],
+      "confidenceThreshold": 0.55,
+      "wlaslClassId": null,
+      "exampleVideoRefs": [],
+      "notes": ""
+    },
+    {
+      "id": "yes",
+      "gloss": "yes",
+      "english": "Yes",
+      "aliases": [],
+      "confidenceThreshold": 0.5,
+      "wlaslClassId": null,
+      "exampleVideoRefs": [],
+      "notes": ""
+    },
+    {
+      "id": "no",
+      "gloss": "no",
+      "english": "No",
+      "aliases": [],
+      "confidenceThreshold": 0.5,
+      "wlaslClassId": null,
+      "exampleVideoRefs": [],
+      "notes": ""
+    },
+    {
+      "id": "name",
+      "gloss": "name",
+      "english": "Name",
+      "aliases": [],
+      "confidenceThreshold": 0.55,
+      "wlaslClassId": null,
+      "exampleVideoRefs": [],
+      "notes": ""
+    }
+  ]
+}
