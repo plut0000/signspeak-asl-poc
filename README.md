@@ -8,7 +8,7 @@ This is a **feasibility demo**, not production-grade ASL recognition and not a s
 
 1. Landing page explains the flow: ASL → English text → spoken voice.
 2. Camera preview after permission is granted.
-3. Record / Stop (auto-stops after 15 seconds).
+3. Record / Stop (auto-stops after 30 seconds).
 4. English translation on screen.
 5. Automatic speech plus a **Replay voice** button.
 6. Sign again / Clear.
@@ -50,7 +50,7 @@ The server prefers `GEMINI_MODEL` (or `gemini-3.1-flash-lite` if unset), then fa
 
 The demo records a short webcam clip with `MediaRecorder` (WebM on Chromium, MP4 on some Safari builds). That clip is posted to `/api/interpret` as form data, encoded as base64, and passed to Gemini as **inline video** (`@google/genai` `generateContent`).
 
-A 15-second 720p-or-smaller clip stays well under Gemini’s inline size limit, so this POC does **not** extract still frames or use the Files API.
+A 30-second 720p-or-smaller clip stays well under Gemini’s inline size limit, so this POC does **not** extract still frames or use the Files API.
 
 ## How to present for DECA
 
