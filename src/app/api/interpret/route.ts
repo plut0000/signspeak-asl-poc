@@ -5,7 +5,7 @@ import {
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 const MIN_BYTES = 8_000;
 const MAX_BYTES = 18 * 1024 * 1024;

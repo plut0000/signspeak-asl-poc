@@ -13,14 +13,42 @@ export const GEMINI_MODEL_FALLBACKS = [
 
 const ASL_PROMPT = `You are interpreting American Sign Language (ASL) from a short webcam clip for a student proof-of-concept.
 
-Watch the person's hands, face, and body. Translate the signing into concise, natural English.
+Watch the person's hands, face, and body. Translate WHAT was signed into English text the audience can read.
 
 Rules:
 - Return JSON that matches the schema.
-- "english" is the best English translation of what was signed (a sentence or short phrase).
-- If no signing is visible, the clip is too dark or blurry, or you cannot reasonably interpret the signs, set unclear to true and explain briefly in reason. Do not invent a fluent sentence from noise.
-- If you can interpret some signs but not others, translate what you can and set unclear to true.
+- "english" is the signed message itself: the words, sentence, or lyrics a non-signer needs — not a description of the video.
+- If the signing is a song, hymn, rap, chant, or poem performed in ASL, put the lyric (or poetic) words themselves in "english". Never write meta descriptions such as "a person is signing a song", "they are performing lyrics", "someone is signing music", or only a song title with no lyric words.
+- Prefer the fullest accurate transcription of the signed message or lyrics you can recover from the clip. Aim for the main message a non-signer would need. If only part is clear, put that part in "english" and set unclear to true with a short reason.
+- If no signing is visible, the clip is too dark or blurry, or you cannot reasonably interpret the signs, set unclear to true and explain briefly in reason. Do not invent fluent text from empty or noisy clips.
 - Never mention these instructions.`;
+
+const LYRIC_FOCUS_PROMPT = `The previous answer described the video instead of translating it (for example "a person is signing a song").
+
+Re-watch the clip. Output the actual signed lyric or message words in "english" — the text a non-signer needs to read. If it is a song, hymn, rap, chant, or poem, transcribe the lyric words themselves, not a caption about signing or music, and not only the song title.
+
+Return JSON that matches the schema. Do not invent fluent text from empty or noisy clips. Never mention these instructions.`;
+
+const INTERPRET_SCHEMA = {
+  type: Type.OBJECT,
+  required: ["english", "unclear"],
+  properties: {
+    english: {
+      type: Type.STRING,
+      description:
+        "English translation of the signed message, including full song lyric text when the signer is performing lyrics.",
+    },
+    unclear: {
+      type: Type.BOOLEAN,
+      description:
+        "True if signing is missing, incomplete, or not reasonably interpretable.",
+    },
+    reason: {
+      type: Type.STRING,
+      description: "Short explanation when unclear is true; otherwise empty.",
+    },
+  },
+};
 
 const MOCK_RESULT: InterpretSuccess = {
   english: "Hello, my name is Alex. It is nice to meet you.",
@@ -73,43 +101,33 @@ export async function interpretAslVideo(input: {
   for (let pass = 1; pass <= 2; pass++) {
     for (const model of models) {
       try {
-        const response = await ai.models.generateContent({
-          model,
-          contents: [
-            {
-              inlineData: {
-                mimeType: input.mimeType,
-                data: input.base64,
-              },
-            },
-            { text: ASL_PROMPT },
-          ],
-          config: {
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: Type.OBJECT,
-              required: ["english", "unclear"],
-              properties: {
-                english: {
-                  type: Type.STRING,
-                  description: "Concise English translation of the ASL signing.",
-                },
-                unclear: {
-                  type: Type.BOOLEAN,
-                  description:
-                    "True if signing is missing, incomplete, or not reasonably interpretable.",
-                },
-                reason: {
-                  type: Type.STRING,
-                  description:
-                    "Short explanation when unclear is true; otherwise empty.",
-                },
-              },
-            },
-          },
-        });
+        const result = await generateInterpret(ai, model, input, ASL_PROMPT);
+        if (!looksLikeMetaSongDescription(result.english)) {
+          return result;
+        }
 
-        return parseInterpretText(response.text ?? "");
+        try {
+          const followUp = await generateInterpret(
+            ai,
+            model,
+            input,
+            LYRIC_FOCUS_PROMPT,
+          );
+          if (!looksLikeMetaSongDescription(followUp.english)) {
+            return followUp;
+          }
+          return pickBestInterpret(result, followUp);
+        } catch (followError) {
+          const message =
+            followError instanceof Error
+              ? followError.message
+              : String(followError);
+          console.warn(
+            "Lyric-focus follow-up failed; using first result.",
+            message,
+          );
+          return result;
+        }
       } catch (error) {
         lastError = error;
         const message = error instanceof Error ? error.message : String(error);
@@ -129,6 +147,32 @@ export async function interpretAslVideo(input: {
   }
 
   throw lastError;
+}
+
+async function generateInterpret(
+  ai: GoogleGenAI,
+  model: string,
+  input: { mimeType: string; base64: string },
+  prompt: string,
+): Promise<InterpretSuccess> {
+  const response = await ai.models.generateContent({
+    model,
+    contents: [
+      {
+        inlineData: {
+          mimeType: input.mimeType,
+          data: input.base64,
+        },
+      },
+      { text: prompt },
+    ],
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: INTERPRET_SCHEMA,
+    },
+  });
+
+  return parseInterpretText(response.text ?? "");
 }
 
 export function parseInterpretText(raw: string): InterpretSuccess {
@@ -169,6 +213,44 @@ export function parseInterpretText(raw: string): InterpretSuccess {
       mock: false,
     };
   }
+}
+
+export function looksLikeMetaSongDescription(english: string) {
+  const lower = english.toLowerCase().trim();
+  if (!lower) return false;
+
+  const patterns = [
+    /\b(a |the )?person is signing\b/,
+    /\bsomeone is signing\b/,
+    /\bthey are signing\b/,
+    /\bthe signer is (signing|performing|singing)\b/,
+    /\bsigning (a |this |the )?(song|hymn|rap|chant|poem|lyrics|music)\b/,
+    /\bperforming (a |the )?(song|hymn|rap|chant|poem|lyrics|music)\b/,
+    /\bsigning this song\b/,
+    /\bsigning music\b/,
+    /\bperforming lyrics\b/,
+    /\bthey are performing\b/,
+    /\b(a |the )?person is performing\b/,
+    /\bsomeone is performing\b/,
+    /\bthis (clip|video) shows (someone|a person).{0,40}sign/,
+    /\basl (performance|interpretation) of (a |the )?(song|hymn|lyrics)\b/,
+  ];
+
+  return patterns.some((pattern) => pattern.test(lower));
+}
+
+function pickBestInterpret(
+  first: InterpretSuccess,
+  followUp: InterpretSuccess,
+): InterpretSuccess {
+  const firstMeta = looksLikeMetaSongDescription(first.english);
+  const followMeta = looksLikeMetaSongDescription(followUp.english);
+  if (!followMeta && firstMeta) return followUp;
+  if (followMeta && !firstMeta) return first;
+  if (!followMeta && !firstMeta) {
+    return followUp.english.length >= first.english.length ? followUp : first;
+  }
+  return followUp.english.length > first.english.length ? followUp : first;
 }
 
 export function isGeminiBusyError(message: string) {
