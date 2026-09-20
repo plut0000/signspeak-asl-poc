@@ -7,6 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { RECORD_SECONDS } from "@/lib/media";
 import { Camera, Hand, Volume2 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -21,7 +22,7 @@ const steps = [
   {
     icon: Camera,
     title: "Sign on camera",
-    body: "Allow the webcam, then record a short phrase in American Sign Language. The clip auto-stops after about seven seconds.",
+    body: `Allow the webcam, then record a short phrase in American Sign Language. The clip auto-stops after ${RECORD_SECONDS} seconds.`,
   },
   {
     icon: Hand,

@@ -1,4 +1,4 @@
-export const RECORD_SECONDS = 7;
+export const RECORD_SECONDS = 15;
 export const MIN_RECORD_MS = 1200;
 
 const RECORDER_TYPES = [
