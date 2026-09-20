@@ -41,10 +41,10 @@ GEMINI_API_KEY=your_key_here
 Optional:
 
 ```bash
-GEMINI_MODEL=gemini-3.8-flash
+GEMINI_MODEL=gemini-3.1-flash-lite
 ```
 
-If a model name is retired, set `GEMINI_MODEL` to whatever Google currently lists as a fast multimodal model.
+The server prefers `GEMINI_MODEL` (or `gemini-3.1-flash-lite` if unset), then falls back through other Gemini 3 models when a model returns 503 / high demand. `/api/status` reports the configured primary model.
 
 ## How video is sent to Gemini
 

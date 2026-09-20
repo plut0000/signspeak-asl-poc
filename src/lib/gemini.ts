@@ -1,7 +1,15 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { InterpretSuccess } from "@/lib/types";
 
-export const DEFAULT_GEMINI_MODEL = "gemini-3.8-flash";
+export const DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite";
+
+export const GEMINI_MODEL_FALLBACKS = [
+  "gemini-3.1-flash-lite",
+  "gemini-3.5-flash-lite",
+  "gemini-3-flash-preview",
+  "gemini-3.5-flash",
+  "gemini-3.8-flash",
+] as const;
 
 const ASL_PROMPT = `You are interpreting American Sign Language (ASL) from a short webcam clip for a student proof-of-concept.
 
@@ -33,6 +41,17 @@ export function getGeminiModel() {
   return process.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;
 }
 
+export function getGeminiModels() {
+  const seen = new Set<string>();
+  const models: string[] = [];
+  for (const model of [getGeminiModel(), ...GEMINI_MODEL_FALLBACKS]) {
+    if (!model || seen.has(model)) continue;
+    seen.add(model);
+    models.push(model);
+  }
+  return models;
+}
+
 export function isMockMode() {
   return !getGeminiApiKey();
 }
@@ -46,60 +65,66 @@ export async function interpretAslVideo(input: {
     return MOCK_RESULT;
   }
 
-  const maxAttempts = 3;
+  const models = getGeminiModels();
+  const ai = new GoogleGenAI({ apiKey: getGeminiApiKey() });
   let lastError: unknown;
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      const ai = new GoogleGenAI({ apiKey: getGeminiApiKey() });
-      const response = await ai.models.generateContent({
-        model: getGeminiModel(),
-        contents: [
-          {
-            inlineData: {
-              mimeType: input.mimeType,
-              data: input.base64,
-            },
-          },
-          { text: ASL_PROMPT },
-        ],
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            required: ["english", "unclear"],
-            properties: {
-              english: {
-                type: Type.STRING,
-                description: "Concise English translation of the ASL signing.",
-              },
-              unclear: {
-                type: Type.BOOLEAN,
-                description:
-                  "True if signing is missing, incomplete, or not reasonably interpretable.",
-              },
-              reason: {
-                type: Type.STRING,
-                description:
-                  "Short explanation when unclear is true; otherwise empty.",
+  // Try each model once, then one more pass if every model was busy.
+  for (let pass = 1; pass <= 2; pass++) {
+    for (const model of models) {
+      try {
+        const response = await ai.models.generateContent({
+          model,
+          contents: [
+            {
+              inlineData: {
+                mimeType: input.mimeType,
+                data: input.base64,
               },
             },
+            { text: ASL_PROMPT },
+          ],
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: Type.OBJECT,
+              required: ["english", "unclear"],
+              properties: {
+                english: {
+                  type: Type.STRING,
+                  description: "Concise English translation of the ASL signing.",
+                },
+                unclear: {
+                  type: Type.BOOLEAN,
+                  description:
+                    "True if signing is missing, incomplete, or not reasonably interpretable.",
+                },
+                reason: {
+                  type: Type.STRING,
+                  description:
+                    "Short explanation when unclear is true; otherwise empty.",
+                },
+              },
+            },
           },
-        },
-      });
+        });
 
-      return parseInterpretText(response.text ?? "");
-    } catch (error) {
-      lastError = error;
-      const message = error instanceof Error ? error.message : String(error);
-      if (!isGeminiBusyError(message) || attempt === maxAttempts) {
-        throw error;
+        return parseInterpretText(response.text ?? "");
+      } catch (error) {
+        lastError = error;
+        const message = error instanceof Error ? error.message : String(error);
+        if (!isGeminiBusyError(message)) {
+          throw error;
+        }
+        console.warn(
+          `Gemini model ${model} busy (pass ${pass}/2); trying next…`,
+          message,
+        );
       }
-      console.warn(
-        `Gemini busy (attempt ${attempt}/${maxAttempts}); retrying…`,
-        message,
-      );
-      await delay(1000 * attempt);
+    }
+
+    if (pass === 1) {
+      await delay(1200);
     }
   }
 
