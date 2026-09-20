@@ -51,10 +51,12 @@ npm run dev
 
 Open [http://localhost:43127](http://localhost:43127).
 
-Optional model check (no webcam):
+Optional model / routing checks (no webcam):
 
 ```bash
 npm run verify:model
+# with the app running:
+npm run verify:api
 ```
 
 ## Add a free Gemini API key

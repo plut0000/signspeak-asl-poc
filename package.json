@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start --port 43127",
     "lint": "eslint",
-    "verify:model": "node scripts/verify-bilstm.mjs"
+    "verify:model": "node scripts/verify-bilstm.mjs",
+    "verify:api": "node scripts/test-interpret-api.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.23.0",
