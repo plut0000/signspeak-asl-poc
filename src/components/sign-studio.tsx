@@ -383,7 +383,12 @@ export function SignStudio({ mode }: { mode: AppMode }) {
               <Alert variant="destructive">
                 <AlertCircle />
                 <AlertTitle>Could not translate</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
+                <AlertDescription>
+                  {error}
+                  {/busy|rate-limited|try again/i.test(error)
+                    ? null
+                    : " You can tap Sign again."}
+                </AlertDescription>
               </Alert>
             ) : (
               <p className="text-sm text-muted-foreground">

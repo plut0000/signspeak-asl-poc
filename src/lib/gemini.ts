@@ -46,44 +46,64 @@ export async function interpretAslVideo(input: {
     return MOCK_RESULT;
   }
 
-  const ai = new GoogleGenAI({ apiKey: getGeminiApiKey() });
-  const response = await ai.models.generateContent({
-    model: getGeminiModel(),
-    contents: [
-      {
-        inlineData: {
-          mimeType: input.mimeType,
-          data: input.base64,
-        },
-      },
-      { text: ASL_PROMPT },
-    ],
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        required: ["english", "unclear"],
-        properties: {
-          english: {
-            type: Type.STRING,
-            description: "Concise English translation of the ASL signing.",
-          },
-          unclear: {
-            type: Type.BOOLEAN,
-            description:
-              "True if signing is missing, incomplete, or not reasonably interpretable.",
-          },
-          reason: {
-            type: Type.STRING,
-            description:
-              "Short explanation when unclear is true; otherwise empty.",
-          },
-        },
-      },
-    },
-  });
+  const maxAttempts = 3;
+  let lastError: unknown;
 
-  return parseInterpretText(response.text ?? "");
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const ai = new GoogleGenAI({ apiKey: getGeminiApiKey() });
+      const response = await ai.models.generateContent({
+        model: getGeminiModel(),
+        contents: [
+          {
+            inlineData: {
+              mimeType: input.mimeType,
+              data: input.base64,
+            },
+          },
+          { text: ASL_PROMPT },
+        ],
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            required: ["english", "unclear"],
+            properties: {
+              english: {
+                type: Type.STRING,
+                description: "Concise English translation of the ASL signing.",
+              },
+              unclear: {
+                type: Type.BOOLEAN,
+                description:
+                  "True if signing is missing, incomplete, or not reasonably interpretable.",
+              },
+              reason: {
+                type: Type.STRING,
+                description:
+                  "Short explanation when unclear is true; otherwise empty.",
+              },
+            },
+          },
+        },
+      });
+
+      return parseInterpretText(response.text ?? "");
+    } catch (error) {
+      lastError = error;
+      const message = error instanceof Error ? error.message : String(error);
+      if (!isGeminiBusyError(message) || attempt === maxAttempts) {
+        throw error;
+      }
+      console.warn(
+        `Gemini busy (attempt ${attempt}/${maxAttempts}); retrying…`,
+        message,
+      );
+      await delay(1000 * attempt);
+    }
+  }
+
+  throw lastError;
 }
 
 export function parseInterpretText(raw: string): InterpretSuccess {
@@ -126,10 +146,24 @@ export function parseInterpretText(raw: string): InterpretSuccess {
   }
 }
 
+export function isGeminiBusyError(message: string) {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes("503") ||
+    lower.includes("unavailable") ||
+    lower.includes("high demand") ||
+    lower.includes("try again later") ||
+    lower.includes("overloaded")
+  );
+}
+
 export function friendlyGeminiError(message: string) {
   const lower = message.toLowerCase();
   if (lower.includes("api key") || lower.includes("permission") || lower.includes("401")) {
     return "Gemini rejected the API key. Check GEMINI_API_KEY in .env.local.";
+  }
+  if (isGeminiBusyError(message)) {
+    return "Gemini is busy right now. Wait a few seconds and try again.";
   }
   if (lower.includes("quota") || lower.includes("429") || lower.includes("resource exhausted")) {
     return "Gemini is rate-limited right now. Wait a moment and try again.";
