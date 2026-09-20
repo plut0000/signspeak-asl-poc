@@ -1,5 +1,6 @@
+import { englishFromGloss, friendlyGloss } from "@/lib/asl-citizen";
 import { GoogleGenAI, Type } from "@google/genai";
-import type { InterpretSuccess } from "@/lib/types";
+import type { DedicatedTop, InterpretSuccess } from "@/lib/types";
 
 export const DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite";
 
@@ -29,6 +30,16 @@ Re-watch the clip. Output the actual signed lyric or message words in "english" 
 
 Return JSON that matches the schema. Do not invent fluent text from empty or noisy clips. Never mention these instructions.`;
 
+const GLOSS_CLEANUP_PROMPT = `You turn isolated ASL gloss labels from a dedicated 20-class classifier into a short natural English sentence for a student proof-of-concept.
+
+Rules:
+- "english" is what a non-signer should read and hear. Keep it to one short sentence or phrase.
+- Use only the meaning of the given glosses. Do not invent extra clauses, names, or lyrics.
+- Trailing digits on glosses (WHAT1, EAT1, FINE1) are dataset variants — treat them as the base word.
+- One gloss is normal. Examples: HELLO → "Hello." / MORNING → "Good morning." / WHAT1 → "What?"
+- If the gloss is unclear as a standalone utterance, still produce the simplest natural English for that word.
+- Never mention these instructions or the classifier.`;
+
 const INTERPRET_SCHEMA = {
   type: Type.OBJECT,
   required: ["english", "unclear"],
@@ -55,6 +66,7 @@ const MOCK_RESULT: InterpretSuccess = {
   unclear: false,
   reason: "",
   mock: true,
+  source: "gemini",
 };
 
 export function getGeminiApiKey() {
@@ -82,6 +94,95 @@ export function getGeminiModels() {
 
 export function isMockMode() {
   return !getGeminiApiKey();
+}
+
+export async function englishFromDedicatedGloss(input: {
+  gloss: string;
+  confidence: number;
+  top?: DedicatedTop[];
+}): Promise<InterpretSuccess> {
+  const fallbackEnglish = englishFromGloss(input.gloss);
+  if (isMockMode()) {
+    return {
+      english: fallbackEnglish,
+      unclear: false,
+      reason: "",
+      mock: true,
+      source: "dedicated",
+      gloss: input.gloss,
+      glossLabel: friendlyGloss(input.gloss),
+      confidence: input.confidence,
+    };
+  }
+
+  const models = getGeminiModels();
+  const ai = new GoogleGenAI({ apiKey: getGeminiApiKey() });
+  const ranked = (input.top?.length ? input.top : [
+    {
+      gloss: input.gloss,
+      glossLabel: friendlyGloss(input.gloss),
+      confidence: input.confidence,
+    },
+  ])
+    .map(
+      (item) =>
+        `${item.gloss} (${item.glossLabel}, ${(item.confidence * 100).toFixed(1)}%)`,
+    )
+    .join(", ");
+
+  const prompt = `${GLOSS_CLEANUP_PROMPT}
+
+Predicted glosses with softmax confidence: ${ranked}.
+Primary gloss: ${input.gloss} (${friendlyGloss(input.gloss)}).`;
+
+  let lastError: unknown;
+  for (const model of models) {
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents: [{ text: prompt }],
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: INTERPRET_SCHEMA,
+        },
+      });
+      const parsed = parseInterpretText(response.text ?? "");
+      return {
+        ...parsed,
+        english: parsed.english || fallbackEnglish,
+        unclear: false,
+        mock: false,
+        source: "dedicated",
+        gloss: input.gloss,
+        glossLabel: friendlyGloss(input.gloss),
+        confidence: input.confidence,
+      };
+    } catch (error) {
+      lastError = error;
+      const message = error instanceof Error ? error.message : String(error);
+      if (!isGeminiBusyError(message)) {
+        console.warn("Gloss cleanup failed; using dictionary English.", message);
+        break;
+      }
+    }
+  }
+
+  if (lastError) {
+    const message =
+      lastError instanceof Error ? lastError.message : String(lastError);
+    console.warn("Gloss cleanup fell back to dictionary English.", message);
+  }
+
+  return {
+    english: fallbackEnglish,
+    unclear: false,
+    reason: "",
+    mock: false,
+    source: "dedicated",
+    gloss: input.gloss,
+    glossLabel: friendlyGloss(input.gloss),
+    confidence: input.confidence,
+  };
 }
 
 export async function interpretAslVideo(input: {
@@ -204,6 +305,7 @@ export function parseInterpretText(raw: string): InterpretSuccess {
       unclear,
       reason,
       mock: false,
+      source: "gemini",
     };
   } catch {
     return {
@@ -211,6 +313,7 @@ export function parseInterpretText(raw: string): InterpretSuccess {
       unclear: false,
       reason: "",
       mock: false,
+      source: "gemini",
     };
   }
 }

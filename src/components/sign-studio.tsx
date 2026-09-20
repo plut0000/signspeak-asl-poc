@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCamera } from "@/hooks/use-camera";
+import { useLandmarkTracker } from "@/hooks/use-landmark-tracker";
 import { useSpeech } from "@/hooks/use-speech";
 import {
   extensionForMime,
@@ -47,6 +48,12 @@ export function SignStudio({ mode }: { mode: AppMode }) {
     speak,
     stop: stopSpeech,
   } = useSpeech();
+  const {
+    status: trackerStatus,
+    prepare: prepareLandmarks,
+    start: startLandmarks,
+    stop: stopLandmarks,
+  } = useLandmarkTracker();
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const startedAtRef = useRef(0);
@@ -77,12 +84,30 @@ export function SignStudio({ mode }: { mode: AppMode }) {
   }, [stopSpeech]);
 
   const interpretClip = useCallback(
-    async (blob: Blob) => {
+    async (blob: Blob, capture: ReturnType<typeof stopLandmarks>) => {
       setSession("processing");
       setError("");
       const form = new FormData();
       const mimeType = blob.type || "video/webm";
       form.append("video", blob, `signing.${extensionForMime(mimeType)}`);
+      if (capture.frames > 0) {
+        const landmarkBytes = new ArrayBuffer(capture.packed.byteLength);
+        new Uint8Array(landmarkBytes).set(
+          new Uint8Array(
+            capture.packed.buffer,
+            capture.packed.byteOffset,
+            capture.packed.byteLength,
+          ),
+        );
+        form.append(
+          "landmarks",
+          new Blob([landmarkBytes], { type: "application/octet-stream" }),
+          "landmarks.bin",
+        );
+        form.append("landmarkFrames", String(capture.frames));
+        form.append("poseFrames", String(capture.poseFrames));
+        form.append("handFrames", String(capture.handFrames));
+      }
 
       abortRef.current?.abort();
       const controller = new AbortController();
@@ -176,6 +201,7 @@ export function SignStudio({ mode }: { mode: AppMode }) {
     recorder.onstop = () => {
       clearTimers();
       recorderRef.current = null;
+      const capture = stopLandmarks();
       const elapsed = Date.now() - startedAtRef.current;
       if (elapsed < MIN_RECORD_MS) {
         setSession("error");
@@ -184,11 +210,12 @@ export function SignStudio({ mode }: { mode: AppMode }) {
       }
       const type = recorder.mimeType || mimeType || "video/webm";
       const blob = new Blob(chunksRef.current, { type });
-      void interpretClip(blob);
+      void interpretClip(blob, capture);
     };
 
     recorderRef.current = recorder;
     recorder.start();
+    startLandmarks(videoRef.current);
     setSession("recording");
 
     tickRef.current = window.setInterval(() => {
@@ -203,18 +230,28 @@ export function SignStudio({ mode }: { mode: AppMode }) {
     clearTimers,
     interpretClip,
     resetOutput,
+    startLandmarks,
+    stopLandmarks,
     stopRecording,
     streamRef,
+    videoRef,
   ]);
+
+  useEffect(() => {
+    if (cameraStatus === "ready") {
+      void prepareLandmarks();
+    }
+  }, [cameraStatus, prepareLandmarks]);
 
   useEffect(() => {
     return () => {
       clearTimers();
+      stopLandmarks();
       if (recorderRef.current && recorderRef.current.state !== "inactive") {
         recorderRef.current.stop();
       }
     };
-  }, [clearTimers]);
+  }, [clearTimers, stopLandmarks]);
 
   const busy = session === "recording" || session === "processing";
   const cameraReady = cameraStatus === "ready";
@@ -226,8 +263,9 @@ export function SignStudio({ mode }: { mode: AppMode }) {
           <Sparkles />
           <AlertTitle>Mock translation is on</AlertTitle>
           <AlertDescription>
-            No Gemini API key is configured, so this demo returns a sample
-            English sentence after a short delay. Add{" "}
+            No Gemini API key is configured. A confident dedicated-model gloss
+            still becomes dictionary English; the Gemini video path returns a
+            sample sentence. Add{" "}
             <code className="rounded bg-background/60 px-1 py-0.5 font-mono text-xs">
               GEMINI_API_KEY
             </code>{" "}
@@ -247,14 +285,25 @@ export function SignStudio({ mode }: { mode: AppMode }) {
                 auto-stops after {RECORD_SECONDS} seconds.
               </CardDescription>
             </div>
-            {session === "recording" ? (
-              <Badge variant="destructive" className="h-6 gap-1.5">
-                <span className="record-dot size-1.5 rounded-full bg-current" />
-                Recording {secondsLeft}s
-              </Badge>
-            ) : cameraReady ? (
-              <Badge variant="secondary">Live preview</Badge>
-            ) : null}
+            <div className="flex flex-col items-end gap-1">
+              {session === "recording" ? (
+                <Badge variant="destructive" className="h-6 gap-1.5">
+                  <span className="record-dot size-1.5 rounded-full bg-current" />
+                  Recording {secondsLeft}s
+                </Badge>
+              ) : cameraReady ? (
+                <Badge variant="secondary">Live preview</Badge>
+              ) : null}
+              {trackerStatus === "ready" || trackerStatus === "sampling" ? (
+                <Badge variant="outline" className="h-6">
+                  Landmarks ready
+                </Badge>
+              ) : trackerStatus === "loading" ? (
+                <Badge variant="outline" className="h-6">
+                  Loading landmarks…
+                </Badge>
+              ) : null}
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -294,16 +343,15 @@ export function SignStudio({ mode }: { mode: AppMode }) {
                 <LoaderCircle className="size-7 animate-spin text-primary" />
                 <p className="text-sm font-medium">Reading the signing…</p>
                 <p className="text-xs text-muted-foreground">
-                  {mode === "live"
-                    ? "Sending the clip to Gemini"
-                    : "Running the mock translator"}
+                  Dedicated model first, Gemini video if unsure
                 </p>
               </div>
             ) : null}
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
-            Preview is mirrored so it feels like a mirror. Gemini receives the
-            unmirrored clip.
+            Preview is mirrored so it feels like a mirror. Landmarks and Gemini
+            use the unmirrored camera stream. Sign one isolated vocab sign for
+            the dedicated model.
           </p>
         </CardContent>
         <CardFooter className="flex flex-col gap-2 sm:flex-row">
@@ -363,15 +411,43 @@ export function SignStudio({ mode }: { mode: AppMode }) {
             ) : result ? (
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  {result.mock ? (
+                  {result.source === "dedicated" ? (
+                    <Badge>Dedicated model</Badge>
+                  ) : result.mock ? (
                     <Badge variant="outline">Mock sample</Badge>
                   ) : (
-                    <Badge>Gemini</Badge>
+                    <Badge variant="secondary">Gemini video</Badge>
                   )}
+                  {result.mock && result.source === "dedicated" ? (
+                    <Badge variant="outline">Dictionary English</Badge>
+                  ) : null}
                   {result.unclear ? (
                     <Badge variant="secondary">Unclear signing</Badge>
                   ) : null}
                 </div>
+                {result.glossLabel || result.gloss ? (
+                  <p className="text-sm text-muted-foreground">
+                    Gloss{" "}
+                    <span className="font-medium text-foreground">
+                      {result.glossLabel || result.gloss}
+                    </span>
+                    {typeof result.confidence === "number"
+                      ? ` · ${(result.confidence * 100).toFixed(0)}% confidence`
+                      : null}
+                  </p>
+                ) : result.dedicatedTop ? (
+                  <p className="text-sm text-muted-foreground">
+                    Dedicated model was unsure
+                    {result.dedicatedTop.glossLabel
+                      ? ` (${result.dedicatedTop.glossLabel} ${(result.dedicatedTop.confidence * 100).toFixed(0)}%)`
+                      : null}
+                    {result.fallbackReason ? ` — ${result.fallbackReason}` : ""}
+                  </p>
+                ) : result.fallbackReason ? (
+                  <p className="text-sm text-muted-foreground">
+                    {result.fallbackReason}
+                  </p>
+                ) : null}
                 <p className="font-heading text-2xl leading-snug font-medium tracking-tight sm:text-3xl">
                   {result.english}
                 </p>
@@ -392,8 +468,9 @@ export function SignStudio({ mode }: { mode: AppMode }) {
               </Alert>
             ) : (
               <p className="text-sm text-muted-foreground">
-                Sign something like “hello,” your name, or “nice to meet you.”
-                Keep your hands in the frame.
+                Try an isolated vocab sign: hello, name, what, why, work, eat,
+                fine, understand, want, morning, night, brother, friendly,
+                finish, maybe, important, health, dinner, after, because.
               </p>
             )}
           </div>

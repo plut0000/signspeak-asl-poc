@@ -1,7 +1,17 @@
 import {
+  assessLandmarkQuality,
+  getDedicatedThreshold,
+  isDedicatedEnabled,
+  MAX_LANDMARK_FRAMES,
+} from "@/lib/asl-citizen";
+import { predictGloss } from "@/lib/asl-infer";
+import { decodeLandmarkBuffer, landmarksToFeatures } from "@/lib/asl-preprocess";
+import {
+  englishFromDedicatedGloss,
   friendlyGeminiError,
   interpretAslVideo,
 } from "@/lib/gemini";
+import type { InterpretSuccess } from "@/lib/types";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -55,13 +65,29 @@ export async function POST(request: Request) {
       );
     }
 
+    const dedicatedAttempt = await tryDedicatedPath(form);
+    if (dedicatedAttempt.ok) {
+      return NextResponse.json(dedicatedAttempt.result);
+    }
+
     const buffer = Buffer.from(await video.arrayBuffer());
     const result = await interpretAslVideo({
       mimeType,
       base64: buffer.toString("base64"),
     });
 
-    return NextResponse.json(result);
+    return NextResponse.json({
+      ...result,
+      source: "gemini" as const,
+      fallbackReason: dedicatedAttempt.reason,
+      dedicatedTop: dedicatedAttempt.prediction
+        ? {
+            gloss: dedicatedAttempt.prediction.gloss,
+            glossLabel: dedicatedAttempt.prediction.glossLabel,
+            confidence: dedicatedAttempt.prediction.confidence,
+          }
+        : undefined,
+    } satisfies InterpretSuccess);
   } catch (error) {
     console.error("ASL interpret failed:", error);
     const message =
@@ -70,5 +96,66 @@ export async function POST(request: Request) {
       { error: friendlyGeminiError(message) },
       { status: 502 },
     );
+  }
+}
+
+async function tryDedicatedPath(form: FormData): Promise<
+  | { ok: true; result: InterpretSuccess }
+  | {
+      ok: false;
+      reason: string;
+      prediction?: Awaited<ReturnType<typeof predictGloss>>;
+    }
+> {
+  if (!isDedicatedEnabled()) {
+    return { ok: false, reason: "Dedicated ASL model is disabled." };
+  }
+
+  const landmarks = form.get("landmarks");
+  if (!(landmarks instanceof File) || landmarks.size < 4) {
+    return {
+      ok: false,
+      reason: "No MediaPipe landmarks were captured for this clip.",
+    };
+  }
+
+  const frames = Number(form.get("landmarkFrames") ?? 0);
+  const poseFrames = Number(form.get("poseFrames") ?? frames);
+  const handFrames = Number(form.get("handFrames") ?? 0);
+  if (!Number.isFinite(frames) || frames < 1 || frames > MAX_LANDMARK_FRAMES) {
+    return { ok: false, reason: "Landmark frame count is invalid." };
+  }
+
+  const quality = assessLandmarkQuality({ frames, poseFrames, handFrames });
+  if (quality.reason) {
+    return { ok: false, reason: quality.reason };
+  }
+
+  try {
+    const packed = decodeLandmarkBuffer(await landmarks.arrayBuffer(), frames);
+    const features = landmarksToFeatures(packed, frames);
+    const prediction = await predictGloss(features);
+    const threshold = getDedicatedThreshold();
+    if (prediction.confidence < threshold) {
+      return {
+        ok: false,
+        reason: `Dedicated model confidence ${(prediction.confidence * 100).toFixed(0)}% was below ${Math.round(threshold * 100)}%.`,
+        prediction,
+      };
+    }
+
+    const result = await englishFromDedicatedGloss({
+      gloss: prediction.gloss,
+      confidence: prediction.confidence,
+      top: prediction.top,
+    });
+    return { ok: true, result };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn("Dedicated ASL path failed; using Gemini video.", message);
+    return {
+      ok: false,
+      reason: "Dedicated model inference failed; using Gemini video.",
+    };
   }
 }
