@@ -23,8 +23,11 @@ export default function DemoPage() {
             </h1>
             <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
               Allow the camera, tap Start signing, and keep your hands in the
-              frame. Unmute your device so the English translation can be spoken
-              automatically.
+              frame. For the dedicated model, sign{" "}
+              <span className="font-medium text-foreground">one isolated
+              sign</span>{" "}
+              from the 20-word vocab (hello, name, what, why…). Unmute so the
+              English can be spoken automatically.
             </p>
           </div>
           <Link

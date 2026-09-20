@@ -15,7 +15,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "SignSpeak — ASL to spoken English",
   description:
-    "DECA EIP proof of concept: sign in American Sign Language on camera, get English text from Gemini, and hear it spoken aloud.",
+    "DECA EIP proof of concept: sign in American Sign Language on camera, get English from a dedicated BiLSTM plus Gemini cleanup, and hear it spoken aloud.",
 };
 
 const steps = [
@@ -26,8 +26,8 @@ const steps = [
   },
   {
     icon: Hand,
-    title: "Gemini reads the signing",
-    body: "The short video is sent to Google Gemini, which returns a concise English translation — or says the signing was unclear.",
+    title: "A dedicated model reads the sign",
+    body: "MediaPipe landmarks go to a 20-class ASL Citizen BiLSTM. Gemini only turns the gloss into a short English sentence — or interprets the full video if the classifier is unsure.",
   },
   {
     icon: Volume2,
@@ -50,10 +50,11 @@ export default function HomePage() {
               Sign in ASL. Read English. Hear it spoken.
             </h1>
             <p className="max-w-xl text-base leading-7 text-muted-foreground sm:text-lg">
-              SignSpeak is a feasibility demo: someone signs a sentence on
-              camera, Gemini interprets that signing as English text, and the
-              site speaks the text aloud. It is a student proof of concept, not
-              a certified interpreter or production recognizer.
+              SignSpeak is a feasibility demo: someone signs on camera, a
+              dedicated 20-class BiLSTM reads isolated ASL Citizen glosses,
+              Gemini cleans that into English (or interprets the video if
+              unsure), and the site speaks the text aloud. It is a student
+              proof of concept, not a certified interpreter.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button asChild size="lg" className="h-12 px-5 text-base">
@@ -127,12 +128,13 @@ export default function HomePage() {
             Honest limits
           </h2>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
-            Gemini is a general multimodal model, not an ASL expert system.
-            Accuracy varies with lighting, camera angle, signing speed, and
-            whether the signs are common. This app is meant to prove the product
-            idea is demoable: camera in, English out, voice out — with a free
-            Gemini key and the browser’s Web Speech API. It is not a substitute
-            for a human interpreter.
+            The dedicated model is trained on 20 isolated ASL Citizen glosses
+            (~77% test top-1). It expects a single-sign-like clip, not a long
+            sentence or song. Gemini is still the open-vocabulary fallback when
+            confidence is low or landmarks fail. Accuracy varies with lighting,
+            camera angle, and whether live MediaPipe matches the training
+            keypoints. This proves the product loop is demoable. It is not a
+            substitute for a human interpreter.
           </p>
         </section>
       </main>
