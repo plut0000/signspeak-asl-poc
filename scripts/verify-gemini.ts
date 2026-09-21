@@ -135,6 +135,7 @@ const dummySilent = await stripAudioTrack({
 });
 assert(!dummySilent.stripped && !dummySilent.hadAudio, "dummy buffers skip ffmpeg");
 
+await verifyMissingFfmpegSoftFail();
 await verifyFfmpegMute();
 
 console.log(
@@ -165,6 +166,45 @@ function run(command: string, args: string[]) {
     child.on("error", (error) => resolve({ ok: false, stdout, stderr: error.message }));
     child.on("close", (code) => resolve({ ok: code === 0, stdout, stderr }));
   });
+}
+
+async function verifyMissingFfmpegSoftFail() {
+  const header = Buffer.alloc(64);
+  header[0] = 0x1a;
+  header[1] = 0x45;
+  header[2] = 0xdf;
+  header[3] = 0xa3;
+  const buffer = Buffer.concat([
+    header,
+    Buffer.from("A_OPUS"),
+    Buffer.alloc(12_000, 2),
+  ]);
+  assert(looksLikeMediaContainer(buffer), "synthetic webm header is a container");
+  assert(bufferHasAudioSignature(buffer), "synthetic clip carries an audio signature");
+
+  const prevFfmpeg = process.env.FFMPEG_PATH;
+  const prevFfprobe = process.env.FFPROBE_PATH;
+  const cases = [
+    ["/nonexistent/signspeak-ffmpeg", "/nonexistent/signspeak-ffprobe"],
+    ["/bin/false", "/bin/false"],
+  ] as const;
+
+  try {
+    for (const [ffmpegPath, ffprobePath] of cases) {
+      process.env.FFMPEG_PATH = ffmpegPath;
+      process.env.FFPROBE_PATH = ffprobePath;
+      const result = await stripAudioTrack({ buffer, mimeType: "video/webm" });
+      assert(result.hadAudio, `hadAudio stays true when mute cannot run (${ffmpegPath})`);
+      assert(!result.stripped, `missing or failed ffmpeg must not throw (${ffmpegPath})`);
+      assert(result.buffer.equals(buffer), `original bytes are returned (${ffmpegPath})`);
+      assert(result.mimeType === "video/webm", `original mime type is kept (${ffmpegPath})`);
+    }
+  } finally {
+    if (prevFfmpeg === undefined) delete process.env.FFMPEG_PATH;
+    else process.env.FFMPEG_PATH = prevFfmpeg;
+    if (prevFfprobe === undefined) delete process.env.FFPROBE_PATH;
+    else process.env.FFPROBE_PATH = prevFfprobe;
+  }
 }
 
 async function verifyFfmpegMute() {
