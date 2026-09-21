@@ -166,7 +166,22 @@ export async function stripAudioTrack(input: {
       }
     }
 
-    throw new Error("Could not mute the clip before translation.");
+    // Soft-fail when ffprobe/ffmpeg are missing or the remux fails. Vercel
+    // serverless has neither binary, and some browsers still attach an audio
+    // track after getUserMedia({ audio: false }). Throwing here 502s the
+    // Gemini fallback ("Could not prepare a silent video…"). Keep the
+    // original bytes so translation can still run; local/dev still mutes
+    // when ffmpeg succeeds above.
+    console.warn(
+      "Could not mute clip before translation; sending original video.",
+      copy.stderr || probe.stderr,
+    );
+    return {
+      buffer: input.buffer,
+      mimeType: input.mimeType,
+      hadAudio: true,
+      stripped: false,
+    };
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
