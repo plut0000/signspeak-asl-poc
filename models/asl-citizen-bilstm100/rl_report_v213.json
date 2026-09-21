@@ -1,0 +1,843 @@
+{
+  "version": "2.1.3",
+  "vocab_classes": 100,
+  "vocab_expanded": true,
+  "method": "REINFORCE policy-gradient: softmax Categorical policy; sample action; reward=+1 if action==label else 0; loss = -log_prob(action)*(reward - EMA_baseline) + 0.2*CE; no layers frozen; Adam low LR.",
+  "freeze": "none",
+  "lr": 5e-05,
+  "ce_mix_used": true,
+  "ce_weight": 0.2,
+  "max_epochs": 25,
+  "epochs_ran": 25,
+  "best_epoch": 5,
+  "train_size": 3190,
+  "val_size": 354,
+  "test_size": 1888,
+  "batch_size": 32,
+  "device": "cpu",
+  "reward": "+1 if sampled action == label else 0",
+  "baseline": "EMA of batch mean reward (momentum=0.9)",
+  "before": {
+    "val_top1": 0.5593,
+    "val_top5": 0.8475,
+    "test_top1": 0.8824,
+    "test_top5": 0.9799
+  },
+  "after": {
+    "val_top1": 0.565,
+    "val_top5": 0.8362,
+    "test_top1": 0.8893,
+    "test_top5": 0.9809
+  },
+  "delta_test_top1": 0.0069,
+  "improved": true,
+  "per_class_test_acc_before_vs_after": {
+    "HELLO": {
+      "n": 18,
+      "before": 0.7777777777777778,
+      "after": 0.7222222222222222
+    },
+    "NAME": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "WHAT1": {
+      "n": 16,
+      "before": 0.9375,
+      "after": 0.9375
+    },
+    "WHY": {
+      "n": 18,
+      "before": 0.8333333333333334,
+      "after": 0.8333333333333334
+    },
+    "WORK": {
+      "n": 18,
+      "before": 0.7777777777777778,
+      "after": 0.7777777777777778
+    },
+    "EAT1": {
+      "n": 21,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "FINE1": {
+      "n": 20,
+      "before": 0.8,
+      "after": 0.85
+    },
+    "UNDERSTAND": {
+      "n": 18,
+      "before": 0.6666666666666666,
+      "after": 0.6666666666666666
+    },
+    "WANT1": {
+      "n": 16,
+      "before": 0.9375,
+      "after": 0.875
+    },
+    "MORNING": {
+      "n": 18,
+      "before": 0.9444444444444444,
+      "after": 0.9444444444444444
+    },
+    "NIGHT1": {
+      "n": 22,
+      "before": 0.9090909090909091,
+      "after": 0.9090909090909091
+    },
+    "BROTHER": {
+      "n": 16,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "FRIENDLY": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "FINISH": {
+      "n": 17,
+      "before": 0.8235294117647058,
+      "after": 0.8823529411764706
+    },
+    "MAYBE": {
+      "n": 18,
+      "before": 0.8888888888888888,
+      "after": 0.8888888888888888
+    },
+    "IMPORTANT": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "HEALTH": {
+      "n": 17,
+      "before": 0.5294117647058824,
+      "after": 0.8235294117647058
+    },
+    "DINNER1": {
+      "n": 19,
+      "before": 0.7368421052631579,
+      "after": 0.7368421052631579
+    },
+    "AFTER": {
+      "n": 17,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "BECAUSE": {
+      "n": 18,
+      "before": 0.7777777777777778,
+      "after": 0.8888888888888888
+    },
+    "BASKETBALL1": {
+      "n": 25,
+      "before": 0.76,
+      "after": 0.76
+    },
+    "DOG1": {
+      "n": 21,
+      "before": 0.8571428571428571,
+      "after": 0.8095238095238095
+    },
+    "WHATFOR1": {
+      "n": 23,
+      "before": 0.8695652173913043,
+      "after": 0.8695652173913043
+    },
+    "BELT1": {
+      "n": 21,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "HOSPITAL1": {
+      "n": 21,
+      "before": 0.8571428571428571,
+      "after": 0.8095238095238095
+    },
+    "MOVIE1": {
+      "n": 21,
+      "before": 0.9047619047619048,
+      "after": 0.9047619047619048
+    },
+    "FOREIGNER1": {
+      "n": 21,
+      "before": 0.9047619047619048,
+      "after": 0.9523809523809523
+    },
+    "BELIEVE1": {
+      "n": 22,
+      "before": 0.9090909090909091,
+      "after": 0.9090909090909091
+    },
+    "BEE1": {
+      "n": 20,
+      "before": 0.85,
+      "after": 0.85
+    },
+    "CHRISTMAS1": {
+      "n": 20,
+      "before": 0.9,
+      "after": 0.85
+    },
+    "SHAVE1": {
+      "n": 20,
+      "before": 0.75,
+      "after": 0.75
+    },
+    "PATIENT2": {
+      "n": 20,
+      "before": 0.9,
+      "after": 1.0
+    },
+    "ELEVATOR1": {
+      "n": 20,
+      "before": 0.9,
+      "after": 0.9
+    },
+    "LETTUCE1": {
+      "n": 21,
+      "before": 0.9523809523809523,
+      "after": 1.0
+    },
+    "RESEARCH1": {
+      "n": 21,
+      "before": 0.9523809523809523,
+      "after": 1.0
+    },
+    "TYPE1": {
+      "n": 21,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "RECENT1": {
+      "n": 21,
+      "before": 0.9047619047619048,
+      "after": 0.9047619047619048
+    },
+    "CANCEL1": {
+      "n": 22,
+      "before": 0.9090909090909091,
+      "after": 0.9545454545454546
+    },
+    "CLOUD1": {
+      "n": 22,
+      "before": 0.9545454545454546,
+      "after": 0.9545454545454546
+    },
+    "DEAF1": {
+      "n": 19,
+      "before": 0.8947368421052632,
+      "after": 0.8947368421052632
+    },
+    "MECHANIC1": {
+      "n": 19,
+      "before": 0.8421052631578947,
+      "after": 0.9473684210526315
+    },
+    "PARTY1": {
+      "n": 19,
+      "before": 0.8947368421052632,
+      "after": 0.8421052631578947
+    },
+    "ROCKINGCHAIR1": {
+      "n": 19,
+      "before": 0.8421052631578947,
+      "after": 0.9473684210526315
+    },
+    "DRAG1": {
+      "n": 20,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "MICROSCOPE1": {
+      "n": 20,
+      "before": 0.8,
+      "after": 0.9
+    },
+    "DOWNSIZE1": {
+      "n": 20,
+      "before": 0.95,
+      "after": 1.0
+    },
+    "DARK1": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "BITE1": {
+      "n": 18,
+      "before": 0.7777777777777778,
+      "after": 0.7777777777777778
+    },
+    "DEMAND1": {
+      "n": 18,
+      "before": 0.8888888888888888,
+      "after": 0.9444444444444444
+    },
+    "BREAKFAST1": {
+      "n": 18,
+      "before": 0.8888888888888888,
+      "after": 0.6666666666666666
+    },
+    "EDIT1": {
+      "n": 19,
+      "before": 0.9473684210526315,
+      "after": 0.9473684210526315
+    },
+    "AXE1": {
+      "n": 19,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "LUNCH1": {
+      "n": 19,
+      "before": 0.7368421052631579,
+      "after": 0.7368421052631579
+    },
+    "NOON1": {
+      "n": 19,
+      "before": 0.8421052631578947,
+      "after": 0.8421052631578947
+    },
+    "RIVER1": {
+      "n": 19,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "THIRD1": {
+      "n": 20,
+      "before": 0.75,
+      "after": 0.8
+    },
+    "CALENDAR1": {
+      "n": 20,
+      "before": 1.0,
+      "after": 0.95
+    },
+    "SPECIAL1": {
+      "n": 20,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "TAKEOFF1": {
+      "n": 21,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "DECIDE1": {
+      "n": 18,
+      "before": 0.8888888888888888,
+      "after": 0.8888888888888888
+    },
+    "CANCER1": {
+      "n": 19,
+      "before": 0.7894736842105263,
+      "after": 0.8421052631578947
+    },
+    "TWINS1": {
+      "n": 19,
+      "before": 0.8421052631578947,
+      "after": 0.8421052631578947
+    },
+    "LOCK1": {
+      "n": 19,
+      "before": 0.9473684210526315,
+      "after": 0.9473684210526315
+    },
+    "GUESS1": {
+      "n": 19,
+      "before": 0.9473684210526315,
+      "after": 1.0
+    },
+    "CONFUSED1": {
+      "n": 19,
+      "before": 0.9473684210526315,
+      "after": 0.9473684210526315
+    },
+    "BACKPACK1": {
+      "n": 18,
+      "before": 0.8333333333333334,
+      "after": 0.8888888888888888
+    },
+    "HALLOWEEN1": {
+      "n": 18,
+      "before": 0.8888888888888888,
+      "after": 0.8888888888888888
+    },
+    "HURDLE-TRIP1": {
+      "n": 16,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "THEY1": {
+      "n": 18,
+      "before": 0.8888888888888888,
+      "after": 0.8888888888888888
+    },
+    "DEVELOP1": {
+      "n": 17,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "APPEAR": {
+      "n": 18,
+      "before": 0.9444444444444444,
+      "after": 0.8888888888888888
+    },
+    "ALARM": {
+      "n": 18,
+      "before": 1.0,
+      "after": 0.9444444444444444
+    },
+    "ACTION": {
+      "n": 18,
+      "before": 0.9444444444444444,
+      "after": 0.9444444444444444
+    },
+    "BOWL": {
+      "n": 18,
+      "before": 0.9444444444444444,
+      "after": 0.8888888888888888
+    },
+    "DISAPPEAR": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "CLEAR": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "CITY1": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "COCACOLA": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "CONCEPT": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "CORN2": {
+      "n": 18,
+      "before": 0.9444444444444444,
+      "after": 0.9444444444444444
+    },
+    "COVERUP": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "CHANNEL": {
+      "n": 18,
+      "before": 0.5,
+      "after": 0.3888888888888889
+    },
+    "CHOCOLATE": {
+      "n": 18,
+      "before": 0.8888888888888888,
+      "after": 0.9444444444444444
+    },
+    "BRAVE": {
+      "n": 18,
+      "before": 0.7777777777777778,
+      "after": 0.7777777777777778
+    },
+    "CABINET": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "BUTTERFLY": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "CANCELLATION": {
+      "n": 18,
+      "before": 0.8888888888888888,
+      "after": 0.9444444444444444
+    },
+    "HAMMER": {
+      "n": 18,
+      "before": 0.7222222222222222,
+      "after": 0.6111111111111112
+    },
+    "GULLIBLE": {
+      "n": 18,
+      "before": 0.7222222222222222,
+      "after": 0.7222222222222222
+    },
+    "GREECE": {
+      "n": 18,
+      "before": 0.7777777777777778,
+      "after": 0.7222222222222222
+    },
+    "GREEN": {
+      "n": 18,
+      "before": 0.3888888888888889,
+      "after": 0.3333333333333333
+    },
+    "FUTURE": {
+      "n": 18,
+      "before": 0.6111111111111112,
+      "after": 0.6111111111111112
+    },
+    "HUSBAND": {
+      "n": 18,
+      "before": 0.9444444444444444,
+      "after": 0.9444444444444444
+    },
+    "HEARING": {
+      "n": 18,
+      "before": 0.8333333333333334,
+      "after": 0.8333333333333334
+    },
+    "LIGHTER": {
+      "n": 18,
+      "before": 0.6111111111111112,
+      "after": 0.7222222222222222
+    },
+    "FAULT": {
+      "n": 18,
+      "before": 0.8888888888888888,
+      "after": 0.8888888888888888
+    },
+    "EUROPE": {
+      "n": 18,
+      "before": 0.7777777777777778,
+      "after": 0.8333333333333334
+    },
+    "EXPLANATION": {
+      "n": 18,
+      "before": 0.9444444444444444,
+      "after": 0.9444444444444444
+    },
+    "EGYPT": {
+      "n": 18,
+      "before": 0.7777777777777778,
+      "after": 0.8333333333333334
+    },
+    "PAIN": {
+      "n": 18,
+      "before": 0.9444444444444444,
+      "after": 0.9444444444444444
+    }
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "train_mean_reward": 0.742,
+      "rl_loss": -0.3648,
+      "ce_loss": 0.4428,
+      "reward_ema": 0.717,
+      "val_top1": 0.5508,
+      "val_top5": 0.8559,
+      "test_top1": 0.8877,
+      "test_top5": 0.9831,
+      "sec": 32.7
+    },
+    {
+      "epoch": 2,
+      "train_mean_reward": 0.7235,
+      "rl_loss": -0.4392,
+      "ce_loss": 0.449,
+      "reward_ema": 0.6871,
+      "val_top1": 0.5537,
+      "val_top5": 0.8616,
+      "test_top1": 0.8829,
+      "test_top5": 0.9841,
+      "sec": 22.5
+    },
+    {
+      "epoch": 3,
+      "train_mean_reward": 0.7361,
+      "rl_loss": -0.4231,
+      "ce_loss": 0.4312,
+      "reward_ema": 0.7532,
+      "val_top1": 0.5508,
+      "val_top5": 0.8503,
+      "test_top1": 0.8898,
+      "test_top5": 0.9831,
+      "sec": 21.7
+    },
+    {
+      "epoch": 4,
+      "train_mean_reward": 0.7442,
+      "rl_loss": -0.419,
+      "ce_loss": 0.4254,
+      "reward_ema": 0.7613,
+      "val_top1": 0.5424,
+      "val_top5": 0.8531,
+      "test_top1": 0.8882,
+      "test_top5": 0.9841,
+      "sec": 22.7
+    },
+    {
+      "epoch": 5,
+      "train_mean_reward": 0.7473,
+      "rl_loss": -0.4321,
+      "ce_loss": 0.4231,
+      "reward_ema": 0.7611,
+      "val_top1": 0.565,
+      "val_top5": 0.8362,
+      "test_top1": 0.8893,
+      "test_top5": 0.9809,
+      "sec": 22.1
+    },
+    {
+      "epoch": 6,
+      "train_mean_reward": 0.7439,
+      "rl_loss": -0.4323,
+      "ce_loss": 0.4221,
+      "reward_ema": 0.7465,
+      "val_top1": 0.5508,
+      "val_top5": 0.8446,
+      "test_top1": 0.8888,
+      "test_top5": 0.9825,
+      "sec": 21.3
+    },
+    {
+      "epoch": 7,
+      "train_mean_reward": 0.7542,
+      "rl_loss": -0.4029,
+      "ce_loss": 0.4192,
+      "reward_ema": 0.7902,
+      "val_top1": 0.548,
+      "val_top5": 0.8446,
+      "test_top1": 0.8877,
+      "test_top5": 0.9825,
+      "sec": 21.7
+    },
+    {
+      "epoch": 8,
+      "train_mean_reward": 0.7661,
+      "rl_loss": -0.393,
+      "ce_loss": 0.4107,
+      "reward_ema": 0.7777,
+      "val_top1": 0.5508,
+      "val_top5": 0.8531,
+      "test_top1": 0.8904,
+      "test_top5": 0.9841,
+      "sec": 21.2
+    },
+    {
+      "epoch": 9,
+      "train_mean_reward": 0.7586,
+      "rl_loss": -0.4156,
+      "ce_loss": 0.4118,
+      "reward_ema": 0.7756,
+      "val_top1": 0.5565,
+      "val_top5": 0.8531,
+      "test_top1": 0.8909,
+      "test_top5": 0.9825,
+      "sec": 22.7
+    },
+    {
+      "epoch": 10,
+      "train_mean_reward": 0.7574,
+      "rl_loss": -0.3976,
+      "ce_loss": 0.4029,
+      "reward_ema": 0.7372,
+      "val_top1": 0.5537,
+      "val_top5": 0.839,
+      "test_top1": 0.8925,
+      "test_top5": 0.9815,
+      "sec": 21.4
+    },
+    {
+      "epoch": 11,
+      "train_mean_reward": 0.7464,
+      "rl_loss": -0.401,
+      "ce_loss": 0.4108,
+      "reward_ema": 0.7423,
+      "val_top1": 0.5452,
+      "val_top5": 0.839,
+      "test_top1": 0.8867,
+      "test_top5": 0.9825,
+      "sec": 21.6
+    },
+    {
+      "epoch": 12,
+      "train_mean_reward": 0.7542,
+      "rl_loss": -0.4032,
+      "ce_loss": 0.4082,
+      "reward_ema": 0.7693,
+      "val_top1": 0.5395,
+      "val_top5": 0.8446,
+      "test_top1": 0.8893,
+      "test_top5": 0.982,
+      "sec": 24.3
+    },
+    {
+      "epoch": 13,
+      "train_mean_reward": 0.7592,
+      "rl_loss": -0.3814,
+      "ce_loss": 0.4018,
+      "reward_ema": 0.7649,
+      "val_top1": 0.5311,
+      "val_top5": 0.8446,
+      "test_top1": 0.8877,
+      "test_top5": 0.9831,
+      "sec": 25.2
+    },
+    {
+      "epoch": 14,
+      "train_mean_reward": 0.7693,
+      "rl_loss": -0.3814,
+      "ce_loss": 0.3929,
+      "reward_ema": 0.7674,
+      "val_top1": 0.5424,
+      "val_top5": 0.8503,
+      "test_top1": 0.8935,
+      "test_top5": 0.9809,
+      "sec": 28.1
+    },
+    {
+      "epoch": 15,
+      "train_mean_reward": 0.7586,
+      "rl_loss": -0.3917,
+      "ce_loss": 0.4052,
+      "reward_ema": 0.7526,
+      "val_top1": 0.5565,
+      "val_top5": 0.8475,
+      "test_top1": 0.8972,
+      "test_top5": 0.982,
+      "sec": 51.0
+    },
+    {
+      "epoch": 16,
+      "train_mean_reward": 0.7759,
+      "rl_loss": -0.3851,
+      "ce_loss": 0.3996,
+      "reward_ema": 0.7633,
+      "val_top1": 0.5508,
+      "val_top5": 0.8475,
+      "test_top1": 0.8893,
+      "test_top5": 0.982,
+      "sec": 28.6
+    },
+    {
+      "epoch": 17,
+      "train_mean_reward": 0.7652,
+      "rl_loss": -0.4114,
+      "ce_loss": 0.4016,
+      "reward_ema": 0.7323,
+      "val_top1": 0.5508,
+      "val_top5": 0.8503,
+      "test_top1": 0.8941,
+      "test_top5": 0.9825,
+      "sec": 27.6
+    },
+    {
+      "epoch": 18,
+      "train_mean_reward": 0.7787,
+      "rl_loss": -0.3634,
+      "ce_loss": 0.3959,
+      "reward_ema": 0.79,
+      "val_top1": 0.5537,
+      "val_top5": 0.8362,
+      "test_top1": 0.8941,
+      "test_top5": 0.9815,
+      "sec": 24.2
+    },
+    {
+      "epoch": 19,
+      "train_mean_reward": 0.7618,
+      "rl_loss": -0.4195,
+      "ce_loss": 0.3853,
+      "reward_ema": 0.7416,
+      "val_top1": 0.5565,
+      "val_top5": 0.8446,
+      "test_top1": 0.8967,
+      "test_top5": 0.9825,
+      "sec": 24.4
+    },
+    {
+      "epoch": 20,
+      "train_mean_reward": 0.7862,
+      "rl_loss": -0.3622,
+      "ce_loss": 0.3788,
+      "reward_ema": 0.7945,
+      "val_top1": 0.5508,
+      "val_top5": 0.8503,
+      "test_top1": 0.8935,
+      "test_top5": 0.9831,
+      "sec": 24.0
+    },
+    {
+      "epoch": 21,
+      "train_mean_reward": 0.7871,
+      "rl_loss": -0.3611,
+      "ce_loss": 0.3876,
+      "reward_ema": 0.7815,
+      "val_top1": 0.565,
+      "val_top5": 0.8531,
+      "test_top1": 0.8962,
+      "test_top5": 0.9815,
+      "sec": 25.0
+    },
+    {
+      "epoch": 22,
+      "train_mean_reward": 0.7818,
+      "rl_loss": -0.3594,
+      "ce_loss": 0.3796,
+      "reward_ema": 0.7842,
+      "val_top1": 0.5565,
+      "val_top5": 0.8475,
+      "test_top1": 0.8919,
+      "test_top5": 0.9815,
+      "sec": 23.4
+    },
+    {
+      "epoch": 23,
+      "train_mean_reward": 0.7828,
+      "rl_loss": -0.3734,
+      "ce_loss": 0.3852,
+      "reward_ema": 0.7768,
+      "val_top1": 0.5452,
+      "val_top5": 0.8531,
+      "test_top1": 0.8951,
+      "test_top5": 0.9825,
+      "sec": 25.6
+    },
+    {
+      "epoch": 24,
+      "train_mean_reward": 0.7787,
+      "rl_loss": -0.3747,
+      "ce_loss": 0.3786,
+      "reward_ema": 0.7794,
+      "val_top1": 0.5254,
+      "val_top5": 0.8475,
+      "test_top1": 0.8957,
+      "test_top5": 0.982,
+      "sec": 24.4
+    },
+    {
+      "epoch": 25,
+      "train_mean_reward": 0.7781,
+      "rl_loss": -0.3768,
+      "ce_loss": 0.3851,
+      "reward_ema": 0.7695,
+      "val_top1": 0.5452,
+      "val_top5": 0.8475,
+      "test_top1": 0.8914,
+      "test_top5": 0.9815,
+      "sec": 24.8
+    }
+  ],
+  "checkpoint": "/workspace/asl-citizen-bilstm/artifacts/asl_citizen_bilstm100_rl.pt",
+  "onnx": "/workspace/asl-citizen-bilstm/artifacts/asl_citizen_bilstm100_rl.onnx",
+  "source_checkpoint": "/workspace/asl-citizen-bilstm/artifacts/asl_citizen_bilstm100.pt",
+  "label_map": "artifacts/label_map100.json",
+  "note": "version 2.1.3, vocab 100 (ASL Citizen); SignSpeak / 50-class artifacts untouched"
+}

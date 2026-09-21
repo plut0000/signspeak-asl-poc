@@ -1,9 +1,9 @@
 # SignSpeak patch notes
 
-## Version 2.1.2.1 — Visual-only song translation (faster, quieter)
+## Version 2.1.3.1 — Visual-only song translation (faster, quieter)
 
 Long clips still go to **Gemini video**. This patch changes *how* that path
-talks and how fast it is — not *when* it is used. The v2.1.2 50-class dedicated
+talks and how fast it is — not *when* it is used. The v2.1.3 100-class dedicated
 path and long-clip routing stay as they are on main.
 
 **Tone and lyrics**
@@ -35,7 +35,38 @@ path and long-clip routing stay as they are on main.
 - Long-clip UI says “Translating the signed song or phrase…” as soon as
   processing starts — it does not fake a shorter wait.
 
-The v2.1.2 **50-class** RL weights and v2.1.1 long-clip routing are unchanged.
+The v2.1.3 **100-class** RL weights and v2.1.1 long-clip routing are unchanged.
+
+## Version 2.1.3 — 100-class RL ASL Citizen BiLSTM
+
+The dedicated isolated-sign classifier now ships a **100-class** RL-fine-tuned
+BiLSTM. The original 50 demo glosses are kept, plus 50 more high-frequency ASL
+Citizen classes.
+
+### Accuracy (held-out test)
+
+| | Top-1 | Top-5 |
+| --- | --- | --- |
+| Supervised CE | 88.2% | ~98% |
+| **v2.1.3 (RL)** | **88.9%** | ~98% |
+
+About **+0.7 points** top-1 after REINFORCE + a light cross-entropy mix.
+
+### What did not change
+
+- Isolated-sign only — not continuous signing
+- Same pipeline: landmarks → ONNX BiLSTM → Gemini English cleanup
+- **v2.1.1 long-clip routing stays:** clips longer than ~5 seconds, or
+  landmark sequences longer than a typical isolated sign, **skip dedicated
+  inference** and use Gemini full-video
+- Uncertain BiLSTM predictions (confidence below 55%, small top-1 vs top-2
+  margin, or high entropy) also fall back to Gemini video
+
+### Production weights
+
+`/api/interpret` loads `models/asl-citizen-bilstm100/asl_citizen_bilstm100_rl.onnx`
+plus the sidecar `asl_citizen_bilstm100_rl.onnx.data`. The `.pt` checkpoint is
+kept alongside for reference. Metrics: `rl_report_v213.json`.
 
 ## Version 2.1.2 — 50-class RL ASL Citizen BiLSTM
 

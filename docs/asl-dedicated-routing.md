@@ -1,8 +1,9 @@
 # Dedicated ASL model + Gemini fallback (SignSpeak)
 
 **License:** Research / non-commercial. The live dedicated model is an ASL
-Citizen 50-class BiLSTM (CC BY-NC-SA 4.0). The earlier 20-class weights remain
-in `models/asl-citizen-bilstm20/`. The earlier WLASL TCN scaffold remains parked
+Citizen 100-class BiLSTM (CC BY-NC-SA 4.0). The earlier 50-class weights remain
+in `models/asl-citizen-bilstm50/`. The earlier 20-class weights remain in
+`models/asl-citizen-bilstm20/`. The earlier WLASL TCN scaffold remains parked
 and is C-UDA 1.0 if used later.
 
 ## Routing
@@ -16,7 +17,7 @@ function translateClip(video, landmarks, durationMs, quality):
     return gemini.interpretAslVideo(video)   # skip BiLSTM entirely
 
   features = preprocess(landmarks)           # (200, 450)
-  pred = onnxBiLSTM(features)                # softmax over 50 glosses
+  pred = onnxBiLSTM(features)                # softmax over 100 glosses
 
   if pred.confidence >= threshold (~0.55)
      and (top1 - top2) >= margin (~0.15)
@@ -33,16 +34,16 @@ function translateClip(video, landmarks, durationMs, quality):
 
 ## Wiring
 
-1. Train offline → `models/asl-citizen-bilstm50/` (`*.pt`, `label_map50.json`, exported `*.onnx`). Demo **v2.1.2.1** loads the v2.1.2 `asl_citizen_bilstm50_rl.onnx` graph; v2.1.1 routing still skips BiLSTM for long clips. Gemini video is silent (audio stripped) and lyric-first.
+1. Train offline → `models/asl-citizen-bilstm100/` (`*.pt`, `label_map100.json`, exported `*.onnx`). Demo **v2.1.3.1** loads the v2.1.3 `asl_citizen_bilstm100_rl.onnx` graph; v2.1.1 routing still skips BiLSTM for long clips. Gemini video is silent (audio stripped) and lyric-first.
 2. Browser: `@mediapipe/tasks-vision` Pose + Hands while recording.
 3. `POST /api/interpret` with `video` plus optional `landmarks` binary + frame counts.
 4. Server: `onnxruntime-node` CPU inference. No GPU box. Only `GEMINI_API_KEY` is required for Gemini.
-5. UI (`sign-studio.tsx`): **Dedicated model** vs **Gemini video** badge, plus **Model v2.1.2 (RL) 50-class** on the dedicated path, gloss + confidence, Replay voice on `english`.
+5. UI (`sign-studio.tsx`): **Dedicated model** vs **Gemini video** badge, plus **Model v2.1.3 (RL) 100-class** on the dedicated path, gloss + confidence, Replay voice on `english`.
 
 Optional env: `DEDICATED_ASL_ENABLED=true`, `DEDICATED_ASL_THRESHOLD=0.55`,
 `DEDICATED_ASL_MARGIN=0.15`, `DEDICATED_ASL_MAX_MS=5000`,
 `DEDICATED_ASL_MAX_FRAMES=80`.
 
 The dedicated model is isolated-sign only. Songs, conversation, names, and
-anything outside the 50-gloss list use Gemini video. Long clips fail closed
+anything outside the 100-gloss list use Gemini video. Long clips fail closed
 to that path instead of latching onto a frequent gloss such as EAT.

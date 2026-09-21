@@ -500,7 +500,7 @@ export function SignStudio({ mode }: { mode: AppMode }) {
               </Alert>
             ) : (
               <p className="text-sm text-muted-foreground">
-                Try an isolated vocab sign from the 50-word list: {VOCAB_HINT}.
+                Try an isolated vocab sign from the 100-word list: {VOCAB_HINT}.
               </p>
             )}
           </div>
