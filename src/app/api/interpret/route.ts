@@ -15,6 +15,7 @@ import {
   friendlyGeminiError,
   interpretAslVideo,
 } from "@/lib/gemini";
+import { stripAudioTrack } from "@/lib/strip-video-audio";
 import type { InterpretSuccess } from "@/lib/types";
 import { NextResponse } from "next/server";
 
@@ -75,9 +76,13 @@ export async function POST(request: Request) {
     }
 
     const buffer = Buffer.from(await video.arrayBuffer());
+    const silent = await stripAudioTrack({ buffer, mimeType });
+    if (silent.stripped) {
+      console.info("Removed audio track before Gemini video interpret.");
+    }
     const result = await interpretAslVideo({
-      mimeType,
-      base64: buffer.toString("base64"),
+      mimeType: silent.mimeType,
+      base64: silent.buffer.toString("base64"),
     });
 
     return NextResponse.json({

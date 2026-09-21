@@ -9,10 +9,11 @@ existing full-video Gemini interpret path still runs.
 This is a **feasibility demo**, not production-grade ASL recognition and not a
 substitute for a human interpreter.
 
-**Demo v2.1.3:** dedicated model is 100 isolated ASL Citizen glosses with an RL
-fine-tune (**88.9%** test top-1, up from ~88.2% supervised). Long / continuous
-clips still skip the isolated-sign BiLSTM and use Gemini video (v2.1.1
-routing). See `PATCH_NOTES.md`.
+**Demo v2.1.3.1:** Gemini video translates signed songs from **vision only**
+(mic off, audio stripped, prompts ignore soundtrack). Dedicated model is the
+v2.1.3 **100-class** RL BiLSTM (**88.9%** test top-1). Long / continuous clips
+still skip the isolated-sign BiLSTM and use Gemini video (v2.1.1 routing).
+See `PATCH_NOTES.md`.
 
 **License:** ASL Citizen derived keypoints and the bundled BiLSTM are
 **CC BY-NC-SA 4.0** (research / non-commercial DECA POC). See
@@ -77,6 +78,7 @@ Optional model / routing checks (no webcam):
 ```bash
 npm run verify:model
 npm run verify:routing
+npm run verify:gemini
 # with the app running:
 npm run verify:api
 ```
@@ -187,7 +189,7 @@ yellow mock banner appears and a sample sentence is returned.
 - `models/asl-citizen-bilstm100/` — v2.1.3 RL ONNX (default), labels, reports
 - `models/asl-citizen-bilstm50/` — earlier 50-class v2.1.2 RL weights (reference)
 - `models/asl-citizen-bilstm20/` — earlier 20-class v2.1 RL weights (reference)
-- `PATCH_NOTES.md` — judge-facing v2.1.3 notes (also shown on the landing and demo pages)
+- `PATCH_NOTES.md` — judge-facing notes (also shown on the landing and demo pages)
 
 No auth, no database, no paid text-to-speech. Browser Web Speech API handles
 voice.

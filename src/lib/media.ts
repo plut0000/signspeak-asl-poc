@@ -1,5 +1,7 @@
 export const RECORD_SECONDS = 30;
 export const MIN_RECORD_MS = 1200;
+/** Matches isolated-sign routing; used for the long-clip processing message only. */
+export const LONG_CLIP_HINT_MS = 5_000;
 
 const RECORDER_TYPES = [
   "video/webm;codecs=vp9",
@@ -11,6 +13,15 @@ const RECORDER_TYPES = [
 export function pickRecorderMimeType() {
   if (typeof MediaRecorder === "undefined") return "";
   return RECORDER_TYPES.find((type) => MediaRecorder.isTypeSupported(type)) ?? "";
+}
+
+/** Drop any microphone / tab-audio tracks so Gemini never receives a soundtrack. */
+export function videoOnlyStream(stream: MediaStream) {
+  for (const track of stream.getAudioTracks()) {
+    track.stop();
+    stream.removeTrack(track);
+  }
+  return new MediaStream(stream.getVideoTracks());
 }
 
 export function extensionForMime(mimeType: string) {

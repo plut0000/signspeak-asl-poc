@@ -49,7 +49,10 @@ assert(
   infer.includes("DEDICATED_MODEL_DIRNAME"),
   "inference should load from the versioned dedicated model dir",
 );
-assert(patchNotes.includes('DEMO_VERSION = "2.1.3"'), "demo version should be 2.1.3");
+assert(
+  patchNotes.includes('DEMO_VERSION = "2.1.3.1"'),
+  "demo version should be 2.1.3.1",
+);
 
 function assessBudget({ frames, durationMs }) {
   if (typeof durationMs === "number" && durationMs > MAX_MS) return false;

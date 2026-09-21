@@ -42,6 +42,10 @@ export function useCamera() {
           frameRate: { ideal: 24, max: 30 },
         },
       });
+      for (const track of stream.getAudioTracks()) {
+        track.stop();
+        stream.removeTrack(track);
+      }
 
       streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = stream;
