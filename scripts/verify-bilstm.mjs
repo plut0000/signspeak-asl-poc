@@ -5,7 +5,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const MODEL = path.join(ROOT, "models/asl-citizen-bilstm20/asl_citizen_bilstm20.onnx");
+const MODEL = path.join(
+  ROOT,
+  "models/asl-citizen-bilstm20/asl_citizen_bilstm20_rl.onnx",
+);
 const LABELS = path.join(ROOT, "models/asl-citizen-bilstm20/label_map.json");
 
 function resampleNormalizeVelocity(packed, frames) {
@@ -110,6 +113,8 @@ const top = norm
 console.log(
   JSON.stringify(
     {
+      version: "2.1",
+      variant: "RL",
       onnx: MODEL,
       input: [1, 200, 450],
       topGloss: top.gloss,

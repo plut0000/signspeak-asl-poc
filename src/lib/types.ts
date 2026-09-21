@@ -16,6 +16,9 @@ export type StatusResponse = {
     threshold: number;
     classes: number;
     architecture: string;
+    version: string;
+    variant: string;
+    label: string;
   };
 };
 

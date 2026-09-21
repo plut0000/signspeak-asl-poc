@@ -1,3 +1,4 @@
+import { PatchNotes } from "@/components/patch-notes";
 import { SignStudio } from "@/components/sign-studio";
 import { SiteHeader } from "@/components/site-header";
 import { isMockMode } from "@/lib/gemini";
@@ -17,7 +18,7 @@ export default function DemoPage() {
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 py-8 sm:px-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-2">
-            <p className="text-sm font-medium text-primary">Live demo</p>
+            <p className="text-sm font-medium text-primary">Live demo · v2.1</p>
             <h1 className="font-heading text-3xl font-semibold tracking-tight">
               Sign, then listen
             </h1>
@@ -37,6 +38,7 @@ export default function DemoPage() {
             Back to overview
           </Link>
         </div>
+        <PatchNotes compact />
         <SignStudio mode={isMockMode() ? "mock" : "live"} />
       </main>
       <footer className="border-t border-border/70 py-6 text-center text-xs text-muted-foreground">

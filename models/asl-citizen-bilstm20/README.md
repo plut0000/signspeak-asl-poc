@@ -7,22 +7,33 @@ processed keypoints (`SharoonArshad/asl-citizen-processed-200`).
 **License: CC BY-NC-SA 4.0** — do not use this model or the derived keypoints
 commercially.
 
-| Split | Top-1 | Top-5 |
-| --- | --- | --- |
-| Val (best ckpt, epoch 32) | 68.75% | 93.75% |
-| Test | 77.29% | 99.17% |
+**Production default is v2.1 (RL).** `/api/interpret` loads
+`asl_citizen_bilstm20_rl.onnx` plus the sidecar `.onnx.data` file.
+
+| Version | Split | Top-1 | Top-5 |
+| --- | --- | --- | --- |
+| v2.0 CE (best ckpt, epoch 32) | Val | 68.75% | 93.75% |
+| v2.0 CE | Test | 77.29% | 99.17% |
+| **v2.1 RL** (REINFORCE + 0.2 CE, epoch 4) | Val | 68.75% | 92.19% |
+| **v2.1 RL** | Test | **82.83%** | 98.89% |
+
+Vocabulary is unchanged: 20 isolated signs. See `rl_report_v21.json` and
+`../../PATCH_NOTES.md`.
 
 ## Files
 
 | File | Role |
 | --- | --- |
-| `asl_citizen_bilstm20.pt` | PyTorch best-val checkpoint (`model_state_dict` + `hparams`) |
-| `asl_citizen_bilstm20.onnx` | Exported CPU graph for Vercel / `onnxruntime-node` |
-| `label_map.json` | id ↔ gloss (20 classes) |
+| `asl_citizen_bilstm20_rl.onnx` + `.onnx.data` | **Production** CPU graph for Vercel / `onnxruntime-node` |
+| `asl_citizen_bilstm20_rl.pt` | RL-fine-tuned PyTorch checkpoint (reference) |
+| `rl_report_v21.json` | v2.1 metrics (before/after, per-class) |
+| `asl_citizen_bilstm20.pt` | v2.0 supervised CE checkpoint (baseline) |
+| `asl_citizen_bilstm20.onnx` | v2.0 CE export (not used by `/api/interpret`) |
+| `label_map.json` | id ↔ gloss (20 classes, unchanged) |
 | `vocab20.json` | Vocab metadata and substitutions |
 | `preprocessing_config.json` | Landmark contract used at train time |
 | `train_bilstm.py` | Authoritative `BiLSTMClassifier` |
-| `train_report.json` | Full metrics |
+| `train_report.json` | v2.0 CE metrics |
 
 Architecture: Linear 450→128 → 2-layer bidirectional LSTM (h=128) → attention
 pool → Linear→20. Input `(1, 200, 450)` float32.
@@ -31,6 +42,7 @@ Export / parity check:
 
 ```bash
 python3 scripts/export_bilstm_onnx.py
+npm run verify:model
 ```
 
 Live webcam MediaPipe must match the preprocessing contract or accuracy

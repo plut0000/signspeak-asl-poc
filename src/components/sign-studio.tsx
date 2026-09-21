@@ -21,6 +21,7 @@ import {
   pickRecorderMimeType,
   RECORD_SECONDS,
 } from "@/lib/media";
+import { DEDICATED_MODEL_LABEL } from "@/lib/asl-citizen";
 import type {
   AppMode,
   InterpretFailure,
@@ -303,6 +304,9 @@ export function SignStudio({ mode }: { mode: AppMode }) {
                   Loading landmarks…
                 </Badge>
               ) : null}
+              <Badge variant="outline" className="h-6 border-primary/30 text-primary">
+                {DEDICATED_MODEL_LABEL}
+              </Badge>
             </div>
           </div>
         </CardHeader>
@@ -412,7 +416,10 @@ export function SignStudio({ mode }: { mode: AppMode }) {
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
                   {result.source === "dedicated" ? (
-                    <Badge>Dedicated model</Badge>
+                    <>
+                      <Badge>Dedicated model</Badge>
+                      <Badge variant="outline">{DEDICATED_MODEL_LABEL}</Badge>
+                    </>
                   ) : result.mock ? (
                     <Badge variant="outline">Mock sample</Badge>
                   ) : (
