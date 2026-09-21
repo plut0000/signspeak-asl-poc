@@ -85,12 +85,17 @@ export function SignStudio({ mode }: { mode: AppMode }) {
   }, [stopSpeech]);
 
   const interpretClip = useCallback(
-    async (blob: Blob, capture: ReturnType<typeof stopLandmarks>) => {
+    async (
+      blob: Blob,
+      capture: ReturnType<typeof stopLandmarks>,
+      durationMs: number,
+    ) => {
       setSession("processing");
       setError("");
       const form = new FormData();
       const mimeType = blob.type || "video/webm";
       form.append("video", blob, `signing.${extensionForMime(mimeType)}`);
+      form.append("durationMs", String(durationMs));
       if (capture.frames > 0) {
         const landmarkBytes = new ArrayBuffer(capture.packed.byteLength);
         new Uint8Array(landmarkBytes).set(
@@ -211,7 +216,7 @@ export function SignStudio({ mode }: { mode: AppMode }) {
       }
       const type = recorder.mimeType || mimeType || "video/webm";
       const blob = new Blob(chunksRef.current, { type });
-      void interpretClip(blob, capture);
+      void interpretClip(blob, capture, elapsed);
     };
 
     recorderRef.current = recorder;
@@ -347,7 +352,8 @@ export function SignStudio({ mode }: { mode: AppMode }) {
                 <LoaderCircle className="size-7 animate-spin text-primary" />
                 <p className="text-sm font-medium">Reading the signing…</p>
                 <p className="text-xs text-muted-foreground">
-                  Dedicated model first, Gemini video if unsure
+                  Short isolated signs use the dedicated model; longer clips use
+                  Gemini video
                 </p>
               </div>
             ) : null}
@@ -355,7 +361,8 @@ export function SignStudio({ mode }: { mode: AppMode }) {
           <p className="mt-3 text-xs text-muted-foreground">
             Preview is mirrored so it feels like a mirror. Landmarks and Gemini
             use the unmirrored camera stream. Sign one isolated vocab sign for
-            the dedicated model.
+            the dedicated model. Songs, conversation, and other long clips skip
+            that model and use Gemini video.
           </p>
         </CardContent>
         <CardFooter className="flex flex-col gap-2 sm:flex-row">

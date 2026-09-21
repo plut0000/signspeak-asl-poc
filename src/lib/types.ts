@@ -14,6 +14,9 @@ export type StatusResponse = {
   dedicated: {
     enabled: boolean;
     threshold: number;
+    margin?: number;
+    maxIsolatedMs?: number;
+    maxIsolatedFrames?: number;
     classes: number;
     architecture: string;
     version: string;

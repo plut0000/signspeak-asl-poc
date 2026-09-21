@@ -9,10 +9,10 @@ existing full-video Gemini interpret path still runs.
 This is a **feasibility demo**, not production-grade ASL recognition and not a
 substitute for a human interpreter.
 
-**Demo v2.1:** the dedicated 20-word ASL Citizen BiLSTM is RL-fine-tuned
-(REINFORCE + light CE mix). Held-out test top-1 is **82.8%** (was 77.3%;
-+~5.5 pts). Top-5 stays ~99%. Vocabulary is still the same 20 isolated signs.
-See `PATCH_NOTES.md`.
+**Demo v2.1.1:** long / continuous clips now skip the isolated-sign BiLSTM and
+use Gemini video. The dedicated model is only for a short, high-confidence
+one-sign clip. v2.1 RL weights are unchanged (20 isolated signs, **82.8%**
+test top-1). See `PATCH_NOTES.md`.
 
 **License:** ASL Citizen derived keypoints and the bundled BiLSTM are
 **CC BY-NC-SA 4.0** (research / non-commercial DECA POC). See
@@ -35,8 +35,11 @@ mode so judges can click through the UX.
 
 Recording can stay ~15–30 seconds, but the BiLSTM was trained on **isolated**
 ASL Citizen clips. Sign **one** vocab sign (hello, name, what, …), keep both
-hands in frame, then stop. Long sentences, fingerspelling, and songs should
-fall through to Gemini video.
+hands in frame, then stop. Clips longer than ~5 seconds, or landmark
+sequences longer than a typical isolated sign, **skip the dedicated model**
+and use Gemini video. Fingerspelling, songs, and conversation take that path
+too. The UI badge shows **Dedicated model** vs **Gemini video** so a long
+clip is never presented as a single vocab word.
 
 ### 20-class vocab
 
@@ -60,6 +63,7 @@ Optional model / routing checks (no webcam):
 
 ```bash
 npm run verify:model
+npm run verify:routing
 # with the app running:
 npm run verify:api
 ```
@@ -84,7 +88,10 @@ Optional:
 ```bash
 GEMINI_MODEL=gemini-3.1-flash-lite
 DEDICATED_ASL_ENABLED=true
-DEDICATED_ASL_THRESHOLD=0.45
+DEDICATED_ASL_THRESHOLD=0.55
+# DEDICATED_ASL_MARGIN=0.15
+# DEDICATED_ASL_MAX_MS=5000
+# DEDICATED_ASL_MAX_FRAMES=80
 ```
 
 `/api/status` reports the Gemini model and dedicated-model settings.
@@ -96,9 +103,12 @@ webcam clip
   ├─ MediaPipe Pose + Hands (browser, Tasks JS)
   │    75 landmarks × xyz → shoulder-center / shoulder-width norm
   │    resample to 200 → flatten 225 + velocities 225 = 450
-  │    ONNX BiLSTM on the server (onnxruntime-node, CPU)
-  │    if max softmax ≥ 0.45 → Gemini gloss→English (or dictionary if no key)
-  └─ else / missing hands / too few frames / tracker failed
+  │    if clip > ~5s or landmark sequence longer than an isolated sign
+  │         → skip BiLSTM (Gemini full-video)
+  │    else ONNX BiLSTM on the server (onnxruntime-node, CPU)
+  │    if max softmax ≥ 0.55 and top-1 − top-2 ≥ 0.15 and entropy is low
+  │         → Gemini gloss→English (or dictionary if no key)
+  └─ else / missing hands / too few frames / tracker failed / unsure softmax
        existing Gemini full-video interpret (or mock)
 ```
 
@@ -141,8 +151,8 @@ forcing a bad gloss.
 3. Open **Camera demo**. Allow the webcam. Unmute speakers.
 4. Sign a single vocab sign (hello is the easiest). Keep hands in frame.
 5. Point to the **Dedicated model** badge, gloss + confidence, then the spoken
-   English. Sign something outside the list (or hide your hands) to show
-   **Gemini video** fallback.
+   English. Sign something outside the list, hide your hands, or record a longer
+   clip to show **Gemini video** fallback.
 6. Be explicit about limits: 20 glosses, isolated signs, not a certified
    interpreter.
 
@@ -161,7 +171,7 @@ yellow mock banner appears and a sample sentence is returned.
 - `src/lib/gemini.ts` — gloss cleanup, video interpret, mock payload
 - `src/lib/tts.ts` — `window.speechSynthesis`
 - `models/asl-citizen-bilstm20/` — v2.1 RL ONNX (default), v2.0 CE baseline, labels, train script
-- `PATCH_NOTES.md` — judge-facing v2.1 notes (also shown on the landing and demo pages)
+- `PATCH_NOTES.md` — judge-facing v2.1.1 notes (also shown on the landing and demo pages)
 
 No auth, no database, no paid text-to-speech. Browser Web Speech API handles
 voice.

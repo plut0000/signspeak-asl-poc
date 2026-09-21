@@ -1,10 +1,14 @@
 import {
   assessLandmarkQuality,
-  getDedicatedThreshold,
   isDedicatedEnabled,
   MAX_LANDMARK_FRAMES,
 } from "@/lib/asl-citizen";
 import { predictGloss } from "@/lib/asl-infer";
+import {
+  assessDedicatedPrediction,
+  assessIsolatedSignBudget,
+  parseDurationMs,
+} from "@/lib/asl-routing";
 import { decodeLandmarkBuffer, landmarksToFeatures } from "@/lib/asl-preprocess";
 import {
   englishFromDedicatedGloss,
@@ -122,8 +126,14 @@ async function tryDedicatedPath(form: FormData): Promise<
   const frames = Number(form.get("landmarkFrames") ?? 0);
   const poseFrames = Number(form.get("poseFrames") ?? frames);
   const handFrames = Number(form.get("handFrames") ?? 0);
+  const durationMs = parseDurationMs(form.get("durationMs"));
   if (!Number.isFinite(frames) || frames < 1 || frames > MAX_LANDMARK_FRAMES) {
     return { ok: false, reason: "Landmark frame count is invalid." };
+  }
+
+  const budget = assessIsolatedSignBudget({ frames, durationMs });
+  if (!budget.ok) {
+    return { ok: false, reason: budget.reason };
   }
 
   const quality = assessLandmarkQuality({ frames, poseFrames, handFrames });
@@ -135,11 +145,11 @@ async function tryDedicatedPath(form: FormData): Promise<
     const packed = decodeLandmarkBuffer(await landmarks.arrayBuffer(), frames);
     const features = landmarksToFeatures(packed, frames);
     const prediction = await predictGloss(features);
-    const threshold = getDedicatedThreshold();
-    if (prediction.confidence < threshold) {
+    const decision = assessDedicatedPrediction(prediction);
+    if (!decision.ok) {
       return {
         ok: false,
-        reason: `Dedicated model confidence ${(prediction.confidence * 100).toFixed(0)}% was below ${Math.round(threshold * 100)}%.`,
+        reason: decision.reason,
         prediction,
       };
     }

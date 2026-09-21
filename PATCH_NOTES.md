@@ -1,5 +1,25 @@
 # SignSpeak patch notes
 
+## Version 2.1.1 — Long clips use Gemini video
+
+The dedicated 20-class BiLSTM is an **isolated-sign** classifier. Long or
+continuous videos (songs, conversation, multi-sign phrases) used to be
+resampled to length 200 and still emitted one of 20 glosses — often a sticky
+wrong word such as **EAT**. Gemini cleanup then turned that gloss into an
+English sentence about eating.
+
+**v2.1.1 routing:**
+
+- Clips longer than ~5 seconds, or landmark sequences longer than a typical
+  isolated sign, **skip dedicated inference** and use Gemini full-video.
+- Short one-sign-like clips can still use BiLSTM → Gemini English cleanup when
+  confidence is high (default ≥ 55%), the top-1 vs top-2 margin is clear
+  (≥ 0.15), and softmax entropy is not too high.
+- The UI still labels **Dedicated model** vs **Gemini video**. A long clip is
+  not shown as a single vocab word.
+
+v2.1 RL weights are unchanged.
+
 ## Version 2.1 — RL fine-tune (20-word ASL Citizen BiLSTM)
 
 The dedicated isolated-sign classifier now ships the RL-fine-tuned v2.1 weights
