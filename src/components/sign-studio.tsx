@@ -23,7 +23,10 @@ import {
   RECORD_SECONDS,
   videoOnlyStream,
 } from "@/lib/media";
-import { DEDICATED_MODEL_LABEL } from "@/lib/asl-citizen";
+import {
+  DEDICATED_MODEL_LABEL,
+  friendlyVocabList,
+} from "@/lib/asl-citizen";
 import type {
   AppMode,
   InterpretFailure,
@@ -41,6 +44,8 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type SessionStatus = "idle" | "recording" | "processing" | "done" | "error";
+
+const VOCAB_HINT = friendlyVocabList().join(", ");
 
 export function SignStudio({ mode }: { mode: AppMode }) {
   const { videoRef, streamRef, status: cameraStatus, error: cameraError, start } =
@@ -495,9 +500,7 @@ export function SignStudio({ mode }: { mode: AppMode }) {
               </Alert>
             ) : (
               <p className="text-sm text-muted-foreground">
-                Try an isolated vocab sign: hello, name, what, why, work, eat,
-                fine, understand, want, morning, night, brother, friendly,
-                finish, maybe, important, health, dinner, after, because.
+                Try an isolated vocab sign from the 50-word list: {VOCAB_HINT}.
               </p>
             )}
           </div>

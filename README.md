@@ -1,7 +1,7 @@
 # SignSpeak — ASL to spoken English
 
 A DECA EIP proof of concept. Someone signs a short phrase in American Sign
-Language on camera. A dedicated 20-class BiLSTM reads isolated signs from
+Language on camera. A dedicated 50-class BiLSTM reads isolated signs from
 MediaPipe landmarks. Gemini only turns that gloss into a clean English sentence
 (and the browser speaks it). If the classifier is unsure or landmarks fail, the
 existing full-video Gemini interpret path still runs.
@@ -10,14 +10,14 @@ This is a **feasibility demo**, not production-grade ASL recognition and not a
 substitute for a human interpreter.
 
 **Demo v2.1.2.1:** Gemini video translates signed songs from **vision only**
-(mic off, audio stripped, prompts ignore soundtrack). Long / continuous clips
-still skip the isolated-sign BiLSTM. The dedicated model is only for a short,
-high-confidence one-sign clip. v2.1 RL weights are unchanged (20 isolated
-signs, **82.8%** test top-1). See `PATCH_NOTES.md`.
+(mic off, audio stripped, prompts ignore soundtrack). Dedicated model is the
+v2.1.2 **50-class** RL BiLSTM (**89.7%** test top-1). Long / continuous clips
+still skip the isolated-sign BiLSTM and use Gemini video (v2.1.1 routing).
+See `PATCH_NOTES.md`.
 
 **License:** ASL Citizen derived keypoints and the bundled BiLSTM are
 **CC BY-NC-SA 4.0** (research / non-commercial DECA POC). See
-`models/asl-citizen-bilstm20/README.md`.
+`models/asl-citizen-bilstm50/README.md`.
 
 ## What you can demo
 
@@ -35,20 +35,26 @@ mode so judges can click through the UX.
 ## Isolated-sign note for judges
 
 Recording can stay ~15–30 seconds, but the BiLSTM was trained on **isolated**
-ASL Citizen clips. Sign **one** vocab sign (hello, name, what, …), keep both
-hands in frame, then stop. Clips longer than ~5 seconds, or landmark
+ASL Citizen clips. Sign **one** vocab sign (hello, name, basketball, …), keep
+both hands in frame, then stop. Clips longer than ~5 seconds, or landmark
 sequences longer than a typical isolated sign, **skip the dedicated model**
 and use Gemini video. Fingerspelling, songs, and conversation take that path
 too. The UI badge shows **Dedicated model** vs **Gemini video** so a long
 clip is never presented as a single vocab word.
 
-### 20-class vocab
+### 50-class vocab
 
-HELLO, NAME, WHAT, WHY, WORK, EAT, FINE, UNDERSTAND, WANT, MORNING, NIGHT,
-BROTHER, FRIENDLY, FINISH, MAYBE, IMPORTANT, HEALTH, DINNER, AFTER, BECAUSE.
+Original 20: HELLO, NAME, WHAT, WHY, WORK, EAT, FINE, UNDERSTAND, WANT,
+MORNING, NIGHT, BROTHER, FRIENDLY, FINISH, MAYBE, IMPORTANT, HEALTH, DINNER,
+AFTER, BECAUSE.
 
-Dataset labels with trailing digits (`WHAT1`, `EAT1`, …) are shown in the UI
-without those digits.
+Added 30: BASKETBALL, DOG, WHAT FOR, BELT, HOSPITAL, MOVIE, FOREIGNER,
+BELIEVE, BEE, CHRISTMAS, SHAVE, PATIENT, ELEVATOR, LETTUCE, RESEARCH, TYPE,
+RECENT, CANCEL, CLOUD, DEAF, MECHANIC, PARTY, ROCKING CHAIR, DRAG, MICROSCOPE,
+DOWNSIZE, DARK, BITE, DEMAND, BREAKFAST.
+
+Dataset labels with trailing digits (`WHAT1`, `BASKETBALL1`, `WHATFOR1`, …)
+are shown in the UI without those digits.
 
 ## Run it
 
@@ -65,6 +71,7 @@ Optional model / routing checks (no webcam):
 ```bash
 npm run verify:model
 npm run verify:routing
+npm run verify:gemini
 # with the app running:
 npm run verify:api
 ```
@@ -113,13 +120,13 @@ webcam clip
        existing Gemini full-video interpret (or mock)
 ```
 
-Weights and the export script live in `models/asl-citizen-bilstm20/`. Production
-inference uses the v2.1 RL graph
-(`asl_citizen_bilstm20_rl.onnx` + `asl_citizen_bilstm20_rl.onnx.data`). The
-`.pt` checkpoint and the earlier supervised CE ONNX are kept alongside for
-reference. Architecture is `train_bilstm.py`: Linear 450→128, 2-layer
-bidirectional LSTM (h=128), attention pool, Linear→20. Reported test top-1 is
-**82.8%** (v2.0 CE was 77.3%).
+Weights live in `models/asl-citizen-bilstm50/`. Production inference uses the
+v2.1.2 RL graph (`asl_citizen_bilstm50_rl.onnx` +
+`asl_citizen_bilstm50_rl.onnx.data`). The `.pt` checkpoint is kept alongside
+for reference. Architecture is the same backbone as the 20-class model:
+Linear 450→128, 2-layer bidirectional LSTM (h=128), attention pool,
+Linear→50. Reported test top-1 is **89.7%** (supervised CE was 87.4%). The
+earlier 20-class v2.1 weights remain in `models/asl-citizen-bilstm20/`.
 
 No extra secrets and no GPU box. Inference is small enough for Vercel Node
 functions (`onnxruntime-node` + traced ONNX file).
@@ -154,7 +161,7 @@ forcing a bad gloss.
 5. Point to the **Dedicated model** badge, gloss + confidence, then the spoken
    English. Sign something outside the list, hide your hands, or record a longer
    clip to show **Gemini video** fallback.
-6. Be explicit about limits: 20 glosses, isolated signs, not a certified
+6. Be explicit about limits: 50 glosses, isolated signs, not a certified
    interpreter.
 
 **Backup if the room has no key or weak Wi-Fi:** leave `GEMINI_API_KEY` empty.
@@ -171,7 +178,8 @@ yellow mock banner appears and a sample sentence is returned.
 - `src/lib/mediapipe-landmarks.ts` — browser Pose + Hands
 - `src/lib/gemini.ts` — gloss cleanup, video interpret, mock payload
 - `src/lib/tts.ts` — `window.speechSynthesis`
-- `models/asl-citizen-bilstm20/` — v2.1 RL ONNX (default), v2.0 CE baseline, labels, train script
+- `models/asl-citizen-bilstm50/` — v2.1.2 RL ONNX (default), labels, reports
+- `models/asl-citizen-bilstm20/` — earlier 20-class v2.1 RL weights (reference)
 - `PATCH_NOTES.md` — judge-facing notes (also shown on the landing and demo pages)
 
 No auth, no database, no paid text-to-speech. Browser Web Speech API handles

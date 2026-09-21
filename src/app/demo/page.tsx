@@ -28,7 +28,7 @@ export default function DemoPage() {
               frame. For the dedicated model, sign{" "}
               <span className="font-medium text-foreground">one isolated
               sign</span>{" "}
-              from the 20-word vocab (hello, name, what, why…). Songs and
+              from the 50-word vocab (hello, name, basketball, what for…). Songs and
               other long clips use Gemini video instead. Unmute so the English
               can be spoken automatically.
             </p>

@@ -16,7 +16,7 @@ export const MAX_ISOLATED_SIGN_MS = 5_000;
 /** ~5.3s at the browser's 66ms landmark sample interval. */
 export const MAX_ISOLATED_SIGN_FRAMES = 80;
 export const DEFAULT_DEDICATED_MARGIN = 0.15;
-/** Softmax entropy / ln(classes). Uniform 20-way is 1. */
+/** Softmax entropy / ln(classes). Uniform over the vocab is 1. */
 export const DEFAULT_MAX_NORMALIZED_ENTROPY = 0.75;
 
 function clampUnit(value: number) {
