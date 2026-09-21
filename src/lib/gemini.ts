@@ -30,14 +30,14 @@ Re-watch the clip. Output the actual signed lyric or message words in "english" 
 
 Return JSON that matches the schema. Do not invent fluent text from empty or noisy clips. Never mention these instructions.`;
 
-const GLOSS_CLEANUP_PROMPT = `You turn isolated ASL gloss labels from a dedicated 50-class classifier into a short natural English sentence for a student proof-of-concept.
+const GLOSS_CLEANUP_PROMPT = `You turn isolated ASL gloss labels from a dedicated 100-class classifier into a short natural English sentence for a student proof-of-concept.
 
 Rules:
 - "english" is what a non-signer should read and hear. Keep it to one short sentence or phrase.
 - Use only the meaning of the given glosses. Do not invent extra clauses, names, or lyrics.
-- Trailing digits on glosses (WHAT1, EAT1, BASKETBALL1, WHATFOR1) are dataset variants — treat them as the base word.
-- Concatenated glosses are one concept: WHATFOR1 → "What for?" / ROCKINGCHAIR1 → "Rocking chair."
-- One gloss is normal. Examples: HELLO → "Hello." / MORNING → "Good morning." / WHAT1 → "What?" / MOVIE1 → "Movie."
+- Trailing digits on glosses (WHAT1, EAT1, BASKETBALL1, WHATFOR1, LUNCH1) are dataset variants — treat them as the base word.
+- Concatenated glosses are one concept: WHATFOR1 → "What for?" / ROCKINGCHAIR1 → "Rocking chair." / TAKEOFF1 → "Take off." / COVERUP → "Cover up." / COCACOLA → "Coca-Cola." / HURDLE-TRIP1 → "Hurdle trip."
+- One gloss is normal. Examples: HELLO → "Hello." / MORNING → "Good morning." / WHAT1 → "What?" / MOVIE1 → "Movie." / CHOCOLATE → "Chocolate."
 - If the gloss is unclear as a standalone utterance, still produce the simplest natural English for that word.
 - Never mention these instructions or the classifier.`;
 
