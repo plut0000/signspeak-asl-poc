@@ -9,10 +9,11 @@ existing full-video Gemini interpret path still runs.
 This is a **feasibility demo**, not production-grade ASL recognition and not a
 substitute for a human interpreter.
 
-**Demo v2.1.1:** long / continuous clips now skip the isolated-sign BiLSTM and
-use Gemini video. The dedicated model is only for a short, high-confidence
-one-sign clip. v2.1 RL weights are unchanged (20 isolated signs, **82.8%**
-test top-1). See `PATCH_NOTES.md`.
+**Demo v2.1.2.1:** Gemini video translates signed songs from **vision only**
+(mic off, audio stripped, prompts ignore soundtrack). Long / continuous clips
+still skip the isolated-sign BiLSTM. The dedicated model is only for a short,
+high-confidence one-sign clip. v2.1 RL weights are unchanged (20 isolated
+signs, **82.8%** test top-1). See `PATCH_NOTES.md`.
 
 **License:** ASL Citizen derived keypoints and the bundled BiLSTM are
 **CC BY-NC-SA 4.0** (research / non-commercial DECA POC). See
@@ -171,7 +172,7 @@ yellow mock banner appears and a sample sentence is returned.
 - `src/lib/gemini.ts` — gloss cleanup, video interpret, mock payload
 - `src/lib/tts.ts` — `window.speechSynthesis`
 - `models/asl-citizen-bilstm20/` — v2.1 RL ONNX (default), v2.0 CE baseline, labels, train script
-- `PATCH_NOTES.md` — judge-facing v2.1.1 notes (also shown on the landing and demo pages)
+- `PATCH_NOTES.md` — judge-facing notes (also shown on the landing and demo pages)
 
 No auth, no database, no paid text-to-speech. Browser Web Speech API handles
 voice.

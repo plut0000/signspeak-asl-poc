@@ -17,9 +17,11 @@ import { useLandmarkTracker } from "@/hooks/use-landmark-tracker";
 import { useSpeech } from "@/hooks/use-speech";
 import {
   extensionForMime,
+  LONG_CLIP_HINT_MS,
   MIN_RECORD_MS,
   pickRecorderMimeType,
   RECORD_SECONDS,
+  videoOnlyStream,
 } from "@/lib/media";
 import { DEDICATED_MODEL_LABEL } from "@/lib/asl-citizen";
 import type {
@@ -67,6 +69,7 @@ export function SignStudio({ mode }: { mode: AppMode }) {
   const [session, setSession] = useState<SessionStatus>("idle");
   const [result, setResult] = useState<InterpretSuccess | null>(null);
   const [error, setError] = useState("");
+  const [processingLongClip, setProcessingLongClip] = useState(false);
 
   const clearTimers = useCallback(() => {
     if (autoStopRef.current) window.clearTimeout(autoStopRef.current);
@@ -82,6 +85,7 @@ export function SignStudio({ mode }: { mode: AppMode }) {
     setResult(null);
     setError("");
     setSession("idle");
+    setProcessingLongClip(false);
   }, [stopSpeech]);
 
   const interpretClip = useCallback(
@@ -91,6 +95,7 @@ export function SignStudio({ mode }: { mode: AppMode }) {
       durationMs: number,
     ) => {
       setSession("processing");
+      setProcessingLongClip(durationMs > LONG_CLIP_HINT_MS);
       setError("");
       const form = new FormData();
       const mimeType = blob.type || "video/webm";
@@ -179,15 +184,18 @@ export function SignStudio({ mode }: { mode: AppMode }) {
     chunksRef.current = [];
     startedAtRef.current = Date.now();
     setSecondsLeft(RECORD_SECONDS);
+    setProcessingLongClip(false);
+
+    const recordStream = videoOnlyStream(stream);
 
     let recorder: MediaRecorder;
     try {
       recorder = mimeType
-        ? new MediaRecorder(stream, {
+        ? new MediaRecorder(recordStream, {
             mimeType,
             videoBitsPerSecond: 900_000,
           })
-        : new MediaRecorder(stream, { videoBitsPerSecond: 900_000 });
+        : new MediaRecorder(recordStream, { videoBitsPerSecond: 900_000 });
     } catch {
       setSession("error");
       setError("Could not start the recorder in this browser.");
@@ -350,10 +358,15 @@ export function SignStudio({ mode }: { mode: AppMode }) {
             {session === "processing" ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/70">
                 <LoaderCircle className="size-7 animate-spin text-primary" />
-                <p className="text-sm font-medium">Reading the signing…</p>
+                <p className="text-sm font-medium">
+                  {processingLongClip
+                    ? "Translating the signed song or phrase…"
+                    : "Reading the signing…"}
+                </p>
                 <p className="text-xs text-muted-foreground">
-                  Short isolated signs use the dedicated model; longer clips use
-                  Gemini video
+                  {processingLongClip
+                    ? "Long clips use Gemini on silent video — this can take a few seconds"
+                    : "Short isolated signs use the dedicated model; longer clips use Gemini video"}
                 </p>
               </div>
             ) : null}
@@ -436,7 +449,7 @@ export function SignStudio({ mode }: { mode: AppMode }) {
                     <Badge variant="outline">Dictionary English</Badge>
                   ) : null}
                   {result.unclear ? (
-                    <Badge variant="secondary">Unclear signing</Badge>
+                    <Badge variant="secondary">Signing unclear</Badge>
                   ) : null}
                 </div>
                 {result.glossLabel || result.gloss ? (

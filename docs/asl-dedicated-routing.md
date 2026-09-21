@@ -32,7 +32,7 @@ function translateClip(video, landmarks, durationMs, quality):
 
 ## Wiring
 
-1. Train offline → `models/asl-citizen-bilstm20/` (`*.pt`, `label_map.json`, exported `*.onnx`). Demo **v2.1.1** still loads the v2.1 `asl_citizen_bilstm20_rl.onnx` graph; routing now skips it for long clips.
+1. Train offline → `models/asl-citizen-bilstm20/` (`*.pt`, `label_map.json`, exported `*.onnx`). Demo **v2.1.2.1** still loads the v2.1 `asl_citizen_bilstm20_rl.onnx` graph; routing still skips it for long clips. Gemini video is silent (audio stripped) and lyric-first.
 2. Browser: `@mediapipe/tasks-vision` Pose + Hands while recording.
 3. `POST /api/interpret` with `video` plus optional `landmarks` binary + frame counts.
 4. Server: `onnxruntime-node` CPU inference. No GPU box. Only `GEMINI_API_KEY` is required for Gemini.

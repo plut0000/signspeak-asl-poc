@@ -1,5 +1,42 @@
 # SignSpeak patch notes
 
+## Version 2.1.2.1 — Visual-only song translation (faster, quieter)
+
+Long clips still go to **Gemini video**. This patch changes *how* that path
+talks and how fast it is — not *when* it is used. Dedicated BiLSTM routing is
+unchanged.
+
+**Tone and lyrics**
+
+- Assume the user wants ASL → English. Signed songs should return the **lyric
+  lines** (or the closest English of the signed song), not a caption about the
+  video.
+- Never label gestures as gang signs, slang crews, or crime. Never lecture
+  that the user is screen-recording or watching someone else.
+- If signing truly cannot be read, show a short polite unclear line. The UI
+  badge is **Signing unclear**, and inflammatory Gemini text is stripped so it
+  cannot pair with that badge.
+
+**Visual-only (no soundtrack leak)**
+
+- Camera and MediaRecorder stay **mic off** (video tracks only).
+- The interpret API remuxes with ffmpeg (`-an`) when an audio track is present,
+  so Gemini never receives song audio.
+- Prompts tell the model to ignore audio entirely and translate from visible
+  signing / signed on-screen words only.
+
+**What got faster**
+
+- Video interpret uses **flash-lite** models only (default
+  `gemini-3.1-flash-lite`); slower full-flash fallbacks are skipped.
+- One attempt per model (no 5× SDK retry). No second “lyric focus” call when
+  the first answer already looks like lyrics or a signed message.
+- Sample video at **8 fps** and disable thinking (`thinkingBudget: 0`).
+- Long-clip UI says “Translating the signed song or phrase…” as soon as
+  processing starts — it does not fake a shorter wait.
+
+v2.1.1 routing and v2.1 RL weights are unchanged.
+
 ## Version 2.1.1 — Long clips use Gemini video
 
 The dedicated 20-class BiLSTM is an **isolated-sign** classifier. Long or

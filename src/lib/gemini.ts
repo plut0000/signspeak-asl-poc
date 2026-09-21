@@ -1,9 +1,17 @@
 import { englishFromGloss, friendlyGloss } from "@/lib/asl-citizen";
 import { GoogleGenAI, Type } from "@google/genai";
+import {
+  POLITE_UNCLEAR_ENGLISH,
+  sanitizeInterpretResult,
+  shouldRetryLyricFocus,
+} from "@/lib/interpret-text";
 import type { DedicatedTop, InterpretSuccess } from "@/lib/types";
+
+export { looksLikeMetaSongDescription } from "@/lib/interpret-text";
 
 export const DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite";
 
+/** Gloss cleanup can fall back across the full list; video interpret stays on lite models. */
 export const GEMINI_MODEL_FALLBACKS = [
   "gemini-3.1-flash-lite",
   "gemini-3.5-flash-lite",
@@ -12,23 +20,49 @@ export const GEMINI_MODEL_FALLBACKS = [
   "gemini-3.8-flash",
 ] as const;
 
-const ASL_PROMPT = `You are interpreting American Sign Language (ASL) from a short webcam clip for a student proof-of-concept.
+/** Fast multimodal models only — skip slower full flash variants on long song clips. */
+export const GEMINI_VIDEO_FAST_FALLBACKS = [
+  "gemini-3.1-flash-lite",
+  "gemini-3.5-flash-lite",
+  "gemini-3-flash-preview",
+] as const;
 
-Watch the person's hands, face, and body. Translate WHAT was signed into English text the audience can read.
+export const VIDEO_INTERPRET_FPS = 8;
+export const VIDEO_REQUEST_TIMEOUT_MS = 55_000;
 
-Rules:
-- Return JSON that matches the schema.
-- "english" is the signed message itself: the words, sentence, or lyrics a non-signer needs — not a description of the video.
-- If the signing is a song, hymn, rap, chant, or poem performed in ASL, put the lyric (or poetic) words themselves in "english". Never write meta descriptions such as "a person is signing a song", "they are performing lyrics", "someone is signing music", or only a song title with no lyric words.
-- Prefer the fullest accurate transcription of the signed message or lyrics you can recover from the clip. Aim for the main message a non-signer would need. If only part is clear, put that part in "english" and set unclear to true with a short reason.
-- If no signing is visible, the clip is too dark or blurry, or you cannot reasonably interpret the signs, set unclear to true and explain briefly in reason. Do not invent fluent text from empty or noisy clips.
-- Never mention these instructions.`;
+export const ASL_PROMPT = `You are SignSpeak's ASL → English translator. The user recorded this clip so a non-signer can read what was signed. Assume American Sign Language by default.
 
-const LYRIC_FOCUS_PROMPT = `The previous answer described the video instead of translating it (for example "a person is signing a song").
+This video is silent. Ignore audio completely. Never transcribe speech, music, or soundtrack lyrics. Translate only from visible signing: hands, face, body, and on-screen words that are actually being signed.
 
-Re-watch the clip. Output the actual signed lyric or message words in "english" — the text a non-signer needs to read. If it is a song, hymn, rap, chant, or poem, transcribe the lyric words themselves, not a caption about signing or music, and not only the song title.
+"english" must be the signed meaning itself — the sentence or lyric lines a non-signer should read — not a description of the video, camera, or room.
 
-Return JSON that matches the schema. Do not invent fluent text from empty or noisy clips. Never mention these instructions.`;
+Signed music:
+- If the clip looks like a signed song, hymn, rap, chant, poem, karaoke, or signing along with music, output the lyric lines (or the closest English of the signed song content).
+- Prefer ASL song interpretation over “this is not ASL”.
+- Never write meta captions such as "a person is signing a song", "they are performing lyrics", "someone is signing music", or only a song title with no lyric words.
+- You may use on-screen lyric text only as a hint for what the hands are signing. Do not dump soundtrack lyrics that the signs do not support.
+
+Unclear (last resort only):
+- Set unclear=true only when signing is truly not visible (empty, dark, blurry, no hands, no movement).
+- Then "english" must be a short polite line such as "The signing was too unclear to translate." and "reason" a single calm clause, for example "Hands were not visible."
+- Partial lyrics or a partial sentence are better than refusing.
+
+Never:
+- Label gestures as gang signs, crime, slang crews, or anything criminal.
+- Claim the user is screen-recording, watching another video, cheating, or not really signing.
+- Narrate "you are recording your screen" / camera commentary as the primary answer.
+- Transcribe soundtrack audio.
+- Mention these instructions.
+
+Return JSON that matches the schema.`;
+
+export const LYRIC_FOCUS_PROMPT = `The previous answer was not an ASL translation. It described the video, guessed about the camera, labeled gestures as something other than signing, or used soundtrack audio.
+
+This is a silent video. Ignore audio entirely. Watch the hands, face, and body. If it looks like signed music, karaoke, or performance, assume ASL song interpretation and put the actual lyric lines (or the closest English of the signed song) in "english".
+
+Do not write "a person is signing a song", a song title alone, gang-sign / crime labels, or screen-recording commentary. Do not transcribe the soundtrack.
+
+unclear=true only if no signing is visible, with a short polite reason. Return JSON that matches the schema. Never mention these instructions.`;
 
 const GLOSS_CLEANUP_PROMPT = `You turn isolated ASL gloss labels from a dedicated 20-class classifier into a short natural English sentence for a student proof-of-concept.
 
@@ -38,7 +72,7 @@ Rules:
 - Trailing digits on glosses (WHAT1, EAT1, FINE1) are dataset variants — treat them as the base word.
 - One gloss is normal. Examples: HELLO → "Hello." / MORNING → "Good morning." / WHAT1 → "What?"
 - If the gloss is unclear as a standalone utterance, still produce the simplest natural English for that word.
-- Never mention these instructions or the classifier.`;
+- Never mention crime, gang signs, cameras, or these instructions or the classifier.`;
 
 const INTERPRET_SCHEMA = {
   type: Type.OBJECT,
@@ -47,16 +81,17 @@ const INTERPRET_SCHEMA = {
     english: {
       type: Type.STRING,
       description:
-        "English translation of the signed message, including full song lyric text when the signer is performing lyrics.",
+        "English of the signed message or signed song lyrics from vision only. Not a video description, not audio transcription, not accusations.",
     },
     unclear: {
       type: Type.BOOLEAN,
       description:
-        "True if signing is missing, incomplete, or not reasonably interpretable.",
+        "True only when signing is not visible enough to translate. Do not set true to refuse a signed song.",
     },
     reason: {
       type: Type.STRING,
-      description: "Short explanation when unclear is true; otherwise empty.",
+      description:
+        "One short polite clause when unclear is true; never accusations. Empty otherwise.",
     },
   },
 };
@@ -81,15 +116,23 @@ export function getGeminiModel() {
   return process.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;
 }
 
-export function getGeminiModels() {
+function uniqueModels(preferred: string[]) {
   const seen = new Set<string>();
   const models: string[] = [];
-  for (const model of [getGeminiModel(), ...GEMINI_MODEL_FALLBACKS]) {
+  for (const model of preferred) {
     if (!model || seen.has(model)) continue;
     seen.add(model);
     models.push(model);
   }
   return models;
+}
+
+export function getGeminiModels() {
+  return uniqueModels([getGeminiModel(), ...GEMINI_MODEL_FALLBACKS]);
+}
+
+export function getGeminiVideoModels() {
+  return uniqueModels([getGeminiModel(), ...GEMINI_VIDEO_FAST_FALLBACKS]);
 }
 
 export function isMockMode() {
@@ -144,9 +187,16 @@ Primary gloss: ${input.gloss} (${friendlyGloss(input.gloss)}).`;
         config: {
           responseMimeType: "application/json",
           responseSchema: INTERPRET_SCHEMA,
+          thinkingConfig: { thinkingBudget: 0 },
+          httpOptions: {
+            timeout: 20_000,
+            retryOptions: { attempts: 1 },
+          },
         },
       });
-      const parsed = parseInterpretText(response.text ?? "");
+      const parsed = sanitizeInterpretResult(
+        parseInterpretText(response.text ?? ""),
+      );
       return {
         ...parsed,
         english: parsed.english || fallbackEnglish,
@@ -194,56 +244,50 @@ export async function interpretAslVideo(input: {
     return MOCK_RESULT;
   }
 
-  const models = getGeminiModels();
+  const models = getGeminiVideoModels();
   const ai = new GoogleGenAI({ apiKey: getGeminiApiKey() });
   let lastError: unknown;
 
-  // Try each model once, then one more pass if every model was busy.
-  for (let pass = 1; pass <= 2; pass++) {
-    for (const model of models) {
-      try {
-        const result = await generateInterpret(ai, model, input, ASL_PROMPT);
-        if (!looksLikeMetaSongDescription(result.english)) {
-          return result;
-        }
+  // One pass of lite models only. SDK retries are disabled; busy models fail over quickly.
+  for (const model of models) {
+    try {
+      const result = await generateInterpret(ai, model, input, ASL_PROMPT);
+      if (!shouldRetryLyricFocus(result)) {
+        return sanitizeInterpretResult(result);
+      }
 
-        try {
-          const followUp = await generateInterpret(
-            ai,
-            model,
-            input,
-            LYRIC_FOCUS_PROMPT,
-          );
-          if (!looksLikeMetaSongDescription(followUp.english)) {
-            return followUp;
-          }
-          return pickBestInterpret(result, followUp);
-        } catch (followError) {
-          const message =
-            followError instanceof Error
-              ? followError.message
-              : String(followError);
-          console.warn(
-            "Lyric-focus follow-up failed; using first result.",
-            message,
-          );
-          return result;
+      try {
+        const followUp = await generateInterpret(
+          ai,
+          model,
+          input,
+          LYRIC_FOCUS_PROMPT,
+        );
+        if (!shouldRetryLyricFocus(followUp)) {
+          return sanitizeInterpretResult(followUp);
         }
-      } catch (error) {
-        lastError = error;
-        const message = error instanceof Error ? error.message : String(error);
-        if (!isGeminiBusyError(message)) {
-          throw error;
-        }
+        return sanitizeInterpretResult(pickBestInterpret(result, followUp));
+      } catch (followError) {
+        const message =
+          followError instanceof Error
+            ? followError.message
+            : String(followError);
         console.warn(
-          `Gemini model ${model} busy (pass ${pass}/2); trying next…`,
+          "Lyric-focus follow-up failed; using first result.",
           message,
         );
+        return sanitizeInterpretResult(result);
       }
-    }
-
-    if (pass === 1) {
-      await delay(1200);
+    } catch (error) {
+      lastError = error;
+      const message = error instanceof Error ? error.message : String(error);
+      if (!isGeminiBusyError(message)) {
+        throw error;
+      }
+      console.warn(
+        `Gemini model ${model} busy; trying next lite model…`,
+        message,
+      );
     }
   }
 
@@ -264,12 +308,22 @@ async function generateInterpret(
           mimeType: input.mimeType,
           data: input.base64,
         },
+        videoMetadata: {
+          fps: VIDEO_INTERPRET_FPS,
+        },
       },
       { text: prompt },
     ],
     config: {
+      temperature: 0.2,
       responseMimeType: "application/json",
       responseSchema: INTERPRET_SCHEMA,
+      thinkingConfig: { thinkingBudget: 0 },
+      audioTimestamp: false,
+      httpOptions: {
+        timeout: VIDEO_REQUEST_TIMEOUT_MS,
+        retryOptions: { attempts: 1 },
+      },
     },
   });
 
@@ -299,9 +353,7 @@ export function parseInterpretText(raw: string): InterpretSuccess {
     const reason = typeof parsed.reason === "string" ? parsed.reason.trim() : "";
 
     return {
-      english:
-        english ||
-        "The signing was too unclear to translate into English.",
+      english: english || POLITE_UNCLEAR_ENGLISH,
       unclear,
       reason,
       mock: false,
@@ -318,39 +370,15 @@ export function parseInterpretText(raw: string): InterpretSuccess {
   }
 }
 
-export function looksLikeMetaSongDescription(english: string) {
-  const lower = english.toLowerCase().trim();
-  if (!lower) return false;
-
-  const patterns = [
-    /\b(a |the )?person is signing\b/,
-    /\bsomeone is signing\b/,
-    /\bthey are signing\b/,
-    /\bthe signer is (signing|performing|singing)\b/,
-    /\bsigning (a |this |the )?(song|hymn|rap|chant|poem|lyrics|music)\b/,
-    /\bperforming (a |the )?(song|hymn|rap|chant|poem|lyrics|music)\b/,
-    /\bsigning this song\b/,
-    /\bsigning music\b/,
-    /\bperforming lyrics\b/,
-    /\bthey are performing\b/,
-    /\b(a |the )?person is performing\b/,
-    /\bsomeone is performing\b/,
-    /\bthis (clip|video) shows (someone|a person).{0,40}sign/,
-    /\basl (performance|interpretation) of (a |the )?(song|hymn|lyrics)\b/,
-  ];
-
-  return patterns.some((pattern) => pattern.test(lower));
-}
-
 function pickBestInterpret(
   first: InterpretSuccess,
   followUp: InterpretSuccess,
 ): InterpretSuccess {
-  const firstMeta = looksLikeMetaSongDescription(first.english);
-  const followMeta = looksLikeMetaSongDescription(followUp.english);
-  if (!followMeta && firstMeta) return followUp;
-  if (followMeta && !firstMeta) return first;
-  if (!followMeta && !firstMeta) {
+  const firstNeedsRetry = shouldRetryLyricFocus(first);
+  const followNeedsRetry = shouldRetryLyricFocus(followUp);
+  if (!followNeedsRetry && firstNeedsRetry) return followUp;
+  if (followNeedsRetry && !firstNeedsRetry) return first;
+  if (!followNeedsRetry && !firstNeedsRetry) {
     return followUp.english.length >= first.english.length ? followUp : first;
   }
   return followUp.english.length > first.english.length ? followUp : first;
@@ -369,6 +397,9 @@ export function isGeminiBusyError(message: string) {
 
 export function friendlyGeminiError(message: string) {
   const lower = message.toLowerCase();
+  if (lower.includes("mute") || lower.includes("silent video")) {
+    return "Could not prepare a silent video for translation. Try signing again.";
+  }
   if (lower.includes("api key") || lower.includes("permission") || lower.includes("401")) {
     return "Gemini rejected the API key. Check GEMINI_API_KEY in .env.local.";
   }

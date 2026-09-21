@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { RECORD_SECONDS } from "@/lib/media";
+import { DEMO_VERSION } from "@/lib/patch-notes";
 import { Camera, Hand, Volume2 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -45,7 +46,7 @@ export default function HomePage() {
         <section className="grid items-center gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
           <div className="space-y-6">
             <p className="text-sm font-medium tracking-wide text-primary uppercase">
-              DECA Entrepreneurship Innovation Plan · Demo v2.1.1
+              DECA Entrepreneurship Innovation Plan · Demo v{DEMO_VERSION}
             </p>
             <h1 className="font-heading max-w-xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
               Sign in ASL. Read English. Hear it spoken.

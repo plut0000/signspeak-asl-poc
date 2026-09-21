@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { DEMO_VERSION } from "@/lib/patch-notes";
 import { Hand } from "lucide-react";
 
 export function SiteHeader() {
@@ -26,7 +27,7 @@ export function SiteHeader() {
         </Link>
         <div className="flex flex-wrap items-center justify-end gap-2">
           <Badge variant="outline" className="h-auto border-primary/30 px-2.5 py-1 text-[0.7rem] text-primary">
-            Demo v2.1.1
+            Demo v{DEMO_VERSION}
           </Badge>
           <Badge variant="outline" className="h-auto px-2.5 py-1 text-[0.7rem]">
             DECA EIP proof of concept

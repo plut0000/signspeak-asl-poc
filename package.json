@@ -10,6 +10,7 @@
     "lint": "eslint",
     "verify:model": "node scripts/verify-bilstm.mjs",
     "verify:routing": "node scripts/verify-routing.mjs",
+    "verify:gemini": "node --experimental-strip-types --no-warnings scripts/verify-gemini.ts",
     "verify:api": "node scripts/test-interpret-api.mjs"
   },
   "dependencies": {

@@ -1,14 +1,14 @@
-export const DEMO_VERSION = "2.1.1";
+export const DEMO_VERSION = "2.1.2.1";
 
 export const PATCH_NOTES = {
   version: DEMO_VERSION,
-  title: "What's new in v2.1.1",
+  title: "What's new in v2.1.2.1",
   summary:
-    "Long and continuous clips now skip the isolated-sign BiLSTM and use Gemini video. The dedicated model is only for short, high-confidence one-sign clips.",
+    "Gemini video now translates signed songs from vision only: silent clips, lyric-first prompts, no gang-sign or screen-recording lectures, and a faster lite-model path.",
   highlights: [
-    "Recordings longer than ~5 seconds, or landmark sequences longer than a typical isolated sign, go to Gemini video instead of forcing one of 20 glosses.",
-    "Uncertain BiLSTM predictions (confidence below 55%, small top-1 vs top-2 margin, or high entropy) also fall back to Gemini video.",
-    "This stops sticky wrong words such as EAT on songs and conversation clips.",
-    "v2.1 RL weights are unchanged (20 isolated signs, 82.8% test top-1).",
+    "Prompts assume ASL → English. Signed music outputs lyric lines, not “a person is signing a song.” Unclear is a last resort, phrased politely.",
+    "The model is forbidden to call gestures “gang signs,” criminal, or slang, and must not narrate screen-recording / camera meta as the answer. Those replies are replaced with a short unclear line so they never sit next to a warning badge.",
+    "Webcam capture stays mic-off. The server strips any audio track before Gemini so a song soundtrack cannot leak lyrics. Prompts also say to ignore audio and read only visible signing.",
+    "Long clips are faster: flash-lite only, no SDK retry storm, no second lyric round-trip when the first answer already looks like lyrics, 8 fps video sampling, thinking disabled. Routing and the 20-class BiLSTM are unchanged.",
   ],
 } as const;
