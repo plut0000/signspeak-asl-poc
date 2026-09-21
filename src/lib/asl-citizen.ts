@@ -340,3 +340,13 @@ export function assessLandmarkQuality(input: {
   }
   return { frames, poseFrames, handFrames, reason: "" };
 }
+
+/** True once enough frames exist to judge coverage and hands are below the dedicated gate. */
+export function liveHandCoverageIsLow(frames: number, handFrames: number) {
+  if (!Number.isFinite(frames) || frames < MIN_LANDMARK_FRAMES) return false;
+  if (!Number.isFinite(handFrames) || handFrames < 0) return true;
+  return (
+    handFrames < MIN_HAND_FRAMES ||
+    handFrames / frames < MIN_HAND_FRAME_RATIO
+  );
+}

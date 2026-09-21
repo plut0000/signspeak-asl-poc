@@ -1,6 +1,6 @@
 "use client";
 
-import { POS_DIM } from "@/lib/asl-citizen";
+import { liveHandCoverageIsLow, POS_DIM } from "@/lib/asl-citizen";
 import {
   prepareLandmarkTrackers,
   resetLandmarkClock,
@@ -12,6 +12,7 @@ import { useCallback, useRef, useState } from "react";
 type TrackerStatus = "idle" | "loading" | "ready" | "error" | "sampling";
 
 const SAMPLE_MS = 66;
+const COVERAGE_PUBLISH_MS = 300;
 
 export function useLandmarkTracker() {
   const landmarkersRef = useRef<Awaited<
@@ -22,10 +23,12 @@ export function useLandmarkTracker() {
   const handFramesRef = useRef(0);
   const rafRef = useRef<number | null>(null);
   const lastSampleRef = useRef(0);
+  const lastCoveragePublishRef = useRef(0);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const [status, setStatus] = useState<TrackerStatus>("idle");
   const [error, setError] = useState("");
+  const [lowHandCoverage, setLowHandCoverage] = useState(false);
 
   const prepare = useCallback(async () => {
     if (landmarkersRef.current) {
@@ -65,6 +68,8 @@ export function useLandmarkTracker() {
     framesRef.current = [];
     poseFramesRef.current = 0;
     handFramesRef.current = 0;
+    lastCoveragePublishRef.current = 0;
+    setLowHandCoverage(false);
     setStatus(landmarkersRef.current ? "ready" : "idle");
     return capture;
   }, []);
@@ -77,9 +82,21 @@ export function useLandmarkTracker() {
       poseFramesRef.current = 0;
       handFramesRef.current = 0;
       lastSampleRef.current = 0;
+      lastCoveragePublishRef.current = 0;
       videoRef.current = video;
       resetLandmarkClock();
+      setLowHandCoverage(false);
       setStatus("sampling");
+
+      const publishCoverage = (now: number) => {
+        if (now - lastCoveragePublishRef.current < COVERAGE_PUBLISH_MS) return;
+        lastCoveragePublishRef.current = now;
+        const low = liveHandCoverageIsLow(
+          framesRef.current.length,
+          handFramesRef.current,
+        );
+        setLowHandCoverage((current) => (current === low ? current : low));
+      };
 
       const tick = () => {
         const landmarkers = landmarkersRef.current;
@@ -94,6 +111,7 @@ export function useLandmarkTracker() {
             if (sample.hasPose) poseFramesRef.current += 1;
             if (sample.hasHand) handFramesRef.current += 1;
           }
+          publishCoverage(now);
         }
         rafRef.current = requestAnimationFrame(tick);
       };
@@ -103,5 +121,5 @@ export function useLandmarkTracker() {
     [],
   );
 
-  return { status, error, prepare, start, stop };
+  return { status, error, lowHandCoverage, prepare, start, stop };
 }
