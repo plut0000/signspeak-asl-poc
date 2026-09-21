@@ -21,6 +21,7 @@ export function useLandmarkTracker() {
   const framesRef = useRef<Float32Array[]>([]);
   const poseFramesRef = useRef(0);
   const handFramesRef = useRef(0);
+  const attemptsRef = useRef(0);
   const rafRef = useRef<number | null>(null);
   const lastSampleRef = useRef(0);
   const lastCoveragePublishRef = useRef(0);
@@ -68,6 +69,7 @@ export function useLandmarkTracker() {
     framesRef.current = [];
     poseFramesRef.current = 0;
     handFramesRef.current = 0;
+    attemptsRef.current = 0;
     lastCoveragePublishRef.current = 0;
     setLowHandCoverage(false);
     setStatus(landmarkersRef.current ? "ready" : "idle");
@@ -81,6 +83,7 @@ export function useLandmarkTracker() {
       framesRef.current = [];
       poseFramesRef.current = 0;
       handFramesRef.current = 0;
+      attemptsRef.current = 0;
       lastSampleRef.current = 0;
       lastCoveragePublishRef.current = 0;
       videoRef.current = video;
@@ -91,8 +94,12 @@ export function useLandmarkTracker() {
       const publishCoverage = (now: number) => {
         if (now - lastCoveragePublishRef.current < COVERAGE_PUBLISH_MS) return;
         lastCoveragePublishRef.current = now;
-        const low = liveHandCoverageIsLow(
+        const observedFrames = Math.max(
           framesRef.current.length,
+          attemptsRef.current,
+        );
+        const low = liveHandCoverageIsLow(
+          observedFrames,
           handFramesRef.current,
         );
         setLowHandCoverage((current) => (current === low ? current : low));
@@ -105,11 +112,16 @@ export function useLandmarkTracker() {
         const now = performance.now();
         if (now - lastSampleRef.current >= SAMPLE_MS) {
           lastSampleRef.current = now;
-          const sample = sampleLandmarkFrame(landmarkers, currentVideo);
-          if (sample) {
-            framesRef.current.push(sample.frame);
-            if (sample.hasPose) poseFramesRef.current += 1;
-            if (sample.hasHand) handFramesRef.current += 1;
+          attemptsRef.current += 1;
+          try {
+            const sample = sampleLandmarkFrame(landmarkers, currentVideo);
+            if (sample) {
+              framesRef.current.push(sample.frame);
+              if (sample.hasPose) poseFramesRef.current += 1;
+              if (sample.hasHand) handFramesRef.current += 1;
+            }
+          } catch {
+            // One bad frame should not stop the live coverage hint.
           }
           publishCoverage(now);
         }
