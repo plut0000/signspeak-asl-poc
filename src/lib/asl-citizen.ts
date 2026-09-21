@@ -275,10 +275,6 @@ export function friendlyGloss(gloss: string) {
   return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
 }
 
-export function friendlyVocabList() {
-  return ASL_CITIZEN_GLOSSES.map((gloss) => friendlyGloss(gloss));
-}
-
 const FALLBACK_ENGLISH: Record<string, string> = {
   HELLO: "Hello.",
   NAME: "Name.",
