@@ -23,10 +23,7 @@ import {
   RECORD_SECONDS,
   videoOnlyStream,
 } from "@/lib/media";
-import {
-  DEDICATED_MODEL_LABEL,
-  friendlyVocabList,
-} from "@/lib/asl-citizen";
+import { DEDICATED_MODEL_LABEL } from "@/lib/asl-citizen";
 import { explainDedicatedSkip } from "@/lib/dedicated-skip-copy";
 import type {
   AppMode,
@@ -45,8 +42,6 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type SessionStatus = "idle" | "recording" | "processing" | "done" | "error";
-
-const VOCAB_HINT = friendlyVocabList().join(", ");
 
 export function SignStudio({ mode }: { mode: AppMode }) {
   const { videoRef, streamRef, status: cameraStatus, error: cameraError, start } =
@@ -524,7 +519,7 @@ export function SignStudio({ mode }: { mode: AppMode }) {
               </Alert>
             ) : (
               <p className="text-sm text-muted-foreground">
-                Try an isolated vocab sign from the 200-word list: {VOCAB_HINT}.
+                Your English translation will show up here.
               </p>
             )}
           </div>
