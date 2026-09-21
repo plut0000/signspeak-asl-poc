@@ -12,6 +12,9 @@ export type DedicatedPrediction = {
   gloss: string;
   glossLabel: string;
   confidence: number;
+  margin: number;
+  entropy: number;
+  normalizedEntropy: number;
   top: Array<{ gloss: string; glossLabel: string; confidence: number }>;
 };
 
@@ -62,11 +65,16 @@ export async function predictGloss(features: Float32Array): Promise<DedicatedPre
     glossLabel: "",
     confidence: 0,
   };
+  const second = top[1]?.confidence ?? 0;
+  const entropy = softmaxEntropy(probs);
 
   return {
     gloss: best.gloss,
     glossLabel: best.glossLabel,
     confidence: best.confidence,
+    margin: best.confidence - second,
+    entropy,
+    normalizedEntropy: entropy / Math.log(Math.max(probs.length, 2)),
     top,
   };
 }
@@ -76,4 +84,12 @@ function softmax(logits: number[]) {
   const exps = logits.map((value) => Math.exp(value - max));
   const sum = exps.reduce((total, value) => total + value, 0);
   return exps.map((value) => value / sum);
+}
+
+function softmaxEntropy(probs: number[]) {
+  let entropy = 0;
+  for (const probability of probs) {
+    if (probability > 0) entropy -= probability * Math.log(probability);
+  }
+  return entropy;
 }

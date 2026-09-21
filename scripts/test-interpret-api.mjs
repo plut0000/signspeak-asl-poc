@@ -21,7 +21,13 @@ function makeLandmarks({ frames, withHands }) {
   return packed;
 }
 
-async function postInterpret({ name, frames, withHands, includeLandmarks }) {
+async function postInterpret({
+  name,
+  frames,
+  withHands,
+  includeLandmarks,
+  durationMs,
+}) {
   const videoPath = path.join(ROOT, `.tmp-${name}.webm`);
   const landPath = path.join(ROOT, `.tmp-${name}.bin`);
   await writeFile(videoPath, Buffer.alloc(12_000, 1));
@@ -47,6 +53,9 @@ async function postInterpret({ name, frames, withHands, includeLandmarks }) {
     form.append("poseFrames", String(frames));
     form.append("handFrames", String(withHands ? frames : 0));
   }
+  if (durationMs != null) {
+    form.append("durationMs", String(durationMs));
+  }
 
   const response = await fetch(`${BASE}/api/interpret`, {
     method: "POST",
@@ -64,6 +73,7 @@ const cases = [
     includeLandmarks: true,
     frames: 30,
     withHands: true,
+    durationMs: 2_500,
     expectSource: "dedicated",
   },
   {
@@ -80,13 +90,43 @@ const cases = [
     withHands: false,
     expectSource: "gemini",
   },
+  {
+    name: "fallback-long-clip",
+    includeLandmarks: true,
+    frames: 200,
+    withHands: true,
+    expectSource: "gemini",
+    expectFallback: /longer than a typical isolated sign/,
+    expectNoDedicatedTop: true,
+  },
+  {
+    name: "fallback-long-duration",
+    includeLandmarks: true,
+    frames: 30,
+    withHands: true,
+    durationMs: 12_000,
+    expectSource: "gemini",
+    expectFallback: /longer than a single isolated sign/,
+    expectNoDedicatedTop: true,
+  },
 ];
 
 const results = [];
 for (const testCase of cases) {
   const result = await postInterpret(testCase);
   const source = result.payload.source;
-  const ok = result.status === 200 && source === testCase.expectSource;
+  const fallbackReason = result.payload.fallbackReason ?? "";
+  const fallbackOk = testCase.expectFallback
+    ? testCase.expectFallback.test(fallbackReason)
+    : true;
+  const dedicatedTopOk = testCase.expectNoDedicatedTop
+    ? !result.payload.dedicatedTop
+    : true;
+  const ok =
+    result.status === 200 &&
+    source === testCase.expectSource &&
+    fallbackOk &&
+    dedicatedTopOk;
   results.push({
     name: testCase.name,
     ok,
@@ -94,7 +134,8 @@ for (const testCase of cases) {
     source,
     gloss: result.payload.gloss,
     confidence: result.payload.confidence,
-    fallbackReason: result.payload.fallbackReason,
+    fallbackReason,
+    dedicatedTop: result.payload.dedicatedTop,
     english: result.payload.english,
     mock: result.payload.mock,
   });

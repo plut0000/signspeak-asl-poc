@@ -28,7 +28,7 @@ const steps = [
   {
     icon: Hand,
     title: "A dedicated model reads the sign",
-    body: "MediaPipe landmarks go to a 20-class ASL Citizen BiLSTM. Gemini only turns the gloss into a short English sentence — or interprets the full video if the classifier is unsure.",
+    body: "A short isolated sign goes to the 20-class ASL Citizen BiLSTM; Gemini turns that gloss into English. Longer clips skip the classifier and use Gemini on the full video.",
   },
   {
     icon: Volume2,
@@ -45,17 +45,18 @@ export default function HomePage() {
         <section className="grid items-center gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
           <div className="space-y-6">
             <p className="text-sm font-medium tracking-wide text-primary uppercase">
-              DECA Entrepreneurship Innovation Plan · Demo v2.1
+              DECA Entrepreneurship Innovation Plan · Demo v2.1.1
             </p>
             <h1 className="font-heading max-w-xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
               Sign in ASL. Read English. Hear it spoken.
             </h1>
             <p className="max-w-xl text-base leading-7 text-muted-foreground sm:text-lg">
-              SignSpeak is a feasibility demo: someone signs on camera, a
-              dedicated 20-class BiLSTM reads isolated ASL Citizen glosses,
-              Gemini cleans that into English (or interprets the video if
-              unsure), and the site speaks the text aloud. It is a student
-              proof of concept, not a certified interpreter.
+              SignSpeak is a feasibility demo: someone signs on camera. A
+              short isolated sign can use the dedicated 20-class BiLSTM;
+              longer clips use Gemini on the full video. Gemini also cleans a
+              confident gloss into English, and the site speaks the text
+              aloud. It is a student proof of concept, not a certified
+              interpreter.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button asChild size="lg" className="h-12 px-5 text-base">
@@ -131,12 +132,14 @@ export default function HomePage() {
           </h2>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
             The dedicated model is an RL-fine-tuned 20-class ASL Citizen
-            BiLSTM (~82.8% test top-1, up from 77.3%). It expects a
-            single-sign-like clip, not a long sentence or song. Gemini is still
-            the open-vocabulary fallback when confidence is low or landmarks
-            fail. Accuracy varies with lighting, camera angle, and whether live
-            MediaPipe matches the training keypoints. This proves the product
-            loop is demoable. It is not a substitute for a human interpreter.
+            BiLSTM (~82.8% test top-1, up from 77.3%). It is used only for a
+            short, one-sign-like clip with a confident prediction. Long
+            sentences, songs, and conversation skip that model and use Gemini
+            video. Gemini is also the fallback when confidence is low or
+            landmarks fail. Accuracy varies with lighting, camera angle, and
+            whether live MediaPipe matches the training keypoints. This proves
+            the product loop is demoable. It is not a substitute for a human
+            interpreter.
           </p>
         </section>
       </main>

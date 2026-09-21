@@ -9,6 +9,7 @@
     "start": "next start --port 43127",
     "lint": "eslint",
     "verify:model": "node scripts/verify-bilstm.mjs",
+    "verify:routing": "node scripts/verify-routing.mjs",
     "verify:api": "node scripts/test-interpret-api.mjs"
   },
   "dependencies": {
