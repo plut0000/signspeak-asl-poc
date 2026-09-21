@@ -36,20 +36,20 @@ assert(MAX_FRAMES === 80, "isolated-sign frame budget should be 80");
 assert(THRESHOLD === 0.55, "default dedicated threshold should be 0.55");
 assert(MARGIN === 0.15, "default dedicated margin should be 0.15");
 assert(MAX_ENTROPY === 0.75, "default max normalized entropy should be 0.75");
-assert(glossCount === 50, `expected 50 dedicated glosses, got ${glossCount}`);
+assert(glossCount === 100, `expected 100 dedicated glosses, got ${glossCount}`);
 assert(
-  citizen.includes('DEDICATED_MODEL_DIRNAME = "asl-citizen-bilstm50"'),
-  "dedicated model dir should be the 50-class folder",
+  citizen.includes('DEDICATED_MODEL_DIRNAME = "asl-citizen-bilstm100"'),
+  "dedicated model dir should be the 100-class folder",
 );
 assert(
-  citizen.includes("asl_citizen_bilstm50_rl.onnx"),
-  "dedicated ONNX should be the 50-class RL graph",
+  citizen.includes("asl_citizen_bilstm100_rl.onnx"),
+  "dedicated ONNX should be the 100-class RL graph",
 );
 assert(
   infer.includes("DEDICATED_MODEL_DIRNAME"),
   "inference should load from the versioned dedicated model dir",
 );
-assert(patchNotes.includes('DEMO_VERSION = "2.1.2"'), "demo version should be 2.1.2");
+assert(patchNotes.includes('DEMO_VERSION = "2.1.3"'), "demo version should be 2.1.3");
 
 function assessBudget({ frames, durationMs }) {
   if (typeof durationMs === "number" && durationMs > MAX_MS) return false;

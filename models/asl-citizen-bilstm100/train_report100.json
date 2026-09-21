@@ -1,0 +1,950 @@
+{
+  "dataset": "SharoonArshad/asl-citizen-processed-200",
+  "license": "CC BY-NC-SA 4.0 \u2014 research/non-commercial OK for DECA POC",
+  "version": "2.1.3-supervised100",
+  "downloaded_bytes": 1856912921,
+  "downloaded_gb": 1.857,
+  "full_dataset_classes": 200,
+  "vocab_classes": 100,
+  "vocab_glosses": [
+    "HELLO",
+    "NAME",
+    "WHAT1",
+    "WHY",
+    "WORK",
+    "EAT1",
+    "FINE1",
+    "UNDERSTAND",
+    "WANT1",
+    "MORNING",
+    "NIGHT1",
+    "BROTHER",
+    "FRIENDLY",
+    "FINISH",
+    "MAYBE",
+    "IMPORTANT",
+    "HEALTH",
+    "DINNER1",
+    "AFTER",
+    "BECAUSE",
+    "BASKETBALL1",
+    "DOG1",
+    "WHATFOR1",
+    "BELT1",
+    "HOSPITAL1",
+    "MOVIE1",
+    "FOREIGNER1",
+    "BELIEVE1",
+    "BEE1",
+    "CHRISTMAS1",
+    "SHAVE1",
+    "PATIENT2",
+    "ELEVATOR1",
+    "LETTUCE1",
+    "RESEARCH1",
+    "TYPE1",
+    "RECENT1",
+    "CANCEL1",
+    "CLOUD1",
+    "DEAF1",
+    "MECHANIC1",
+    "PARTY1",
+    "ROCKINGCHAIR1",
+    "DRAG1",
+    "MICROSCOPE1",
+    "DOWNSIZE1",
+    "DARK1",
+    "BITE1",
+    "DEMAND1",
+    "BREAKFAST1",
+    "EDIT1",
+    "AXE1",
+    "LUNCH1",
+    "NOON1",
+    "RIVER1",
+    "THIRD1",
+    "CALENDAR1",
+    "SPECIAL1",
+    "TAKEOFF1",
+    "DECIDE1",
+    "CANCER1",
+    "TWINS1",
+    "LOCK1",
+    "GUESS1",
+    "CONFUSED1",
+    "BACKPACK1",
+    "HALLOWEEN1",
+    "HURDLE-TRIP1",
+    "THEY1",
+    "DEVELOP1",
+    "APPEAR",
+    "ALARM",
+    "ACTION",
+    "BOWL",
+    "DISAPPEAR",
+    "CLEAR",
+    "CITY1",
+    "COCACOLA",
+    "CONCEPT",
+    "CORN2",
+    "COVERUP",
+    "CHANNEL",
+    "CHOCOLATE",
+    "BRAVE",
+    "CABINET",
+    "BUTTERFLY",
+    "CANCELLATION",
+    "HAMMER",
+    "GULLIBLE",
+    "GREECE",
+    "GREEN",
+    "FUTURE",
+    "HUSBAND",
+    "HEARING",
+    "LIGHTER",
+    "FAULT",
+    "EUROPE",
+    "EXPLANATION",
+    "EGYPT",
+    "PAIN"
+  ],
+  "feature_shape": [
+    200,
+    450
+  ],
+  "train_size": 3190,
+  "val_size": 354,
+  "test_size": 1888,
+  "device": "cpu",
+  "architecture": {
+    "feat_dim": 450,
+    "proj_dim": 128,
+    "hidden": 128,
+    "n_layers": 2,
+    "n_classes": 100,
+    "dropout": 0.35,
+    "use_attention": true,
+    "arch": "BiLSTM+attn"
+  },
+  "n_params": 743141,
+  "batch_size": 32,
+  "max_epochs": 40,
+  "epochs_ran": 40,
+  "best_epoch": 38,
+  "best_val_acc": 0.5593,
+  "best_val_top5": 0.8475,
+  "best_test_acc": 0.8824,
+  "best_test_top5": 0.9799,
+  "per_class_test_acc": {
+    "HELLO": {
+      "n": 18,
+      "acc": 0.7777777777777778
+    },
+    "NAME": {
+      "n": 18,
+      "acc": 1.0
+    },
+    "WHAT1": {
+      "n": 16,
+      "acc": 0.9375
+    },
+    "WHY": {
+      "n": 18,
+      "acc": 0.8333333333333334
+    },
+    "WORK": {
+      "n": 18,
+      "acc": 0.7777777777777778
+    },
+    "EAT1": {
+      "n": 21,
+      "acc": 1.0
+    },
+    "FINE1": {
+      "n": 20,
+      "acc": 0.8
+    },
+    "UNDERSTAND": {
+      "n": 18,
+      "acc": 0.6666666666666666
+    },
+    "WANT1": {
+      "n": 16,
+      "acc": 0.9375
+    },
+    "MORNING": {
+      "n": 18,
+      "acc": 0.9444444444444444
+    },
+    "NIGHT1": {
+      "n": 22,
+      "acc": 0.9090909090909091
+    },
+    "BROTHER": {
+      "n": 16,
+      "acc": 1.0
+    },
+    "FRIENDLY": {
+      "n": 18,
+      "acc": 1.0
+    },
+    "FINISH": {
+      "n": 17,
+      "acc": 0.8235294117647058
+    },
+    "MAYBE": {
+      "n": 18,
+      "acc": 0.8888888888888888
+    },
+    "IMPORTANT": {
+      "n": 18,
+      "acc": 1.0
+    },
+    "HEALTH": {
+      "n": 17,
+      "acc": 0.5294117647058824
+    },
+    "DINNER1": {
+      "n": 19,
+      "acc": 0.7368421052631579
+    },
+    "AFTER": {
+      "n": 17,
+      "acc": 1.0
+    },
+    "BECAUSE": {
+      "n": 18,
+      "acc": 0.7777777777777778
+    },
+    "BASKETBALL1": {
+      "n": 25,
+      "acc": 0.76
+    },
+    "DOG1": {
+      "n": 21,
+      "acc": 0.8571428571428571
+    },
+    "WHATFOR1": {
+      "n": 23,
+      "acc": 0.8695652173913043
+    },
+    "BELT1": {
+      "n": 21,
+      "acc": 1.0
+    },
+    "HOSPITAL1": {
+      "n": 21,
+      "acc": 0.8571428571428571
+    },
+    "MOVIE1": {
+      "n": 21,
+      "acc": 0.9047619047619048
+    },
+    "FOREIGNER1": {
+      "n": 21,
+      "acc": 0.9047619047619048
+    },
+    "BELIEVE1": {
+      "n": 22,
+      "acc": 0.9090909090909091
+    },
+    "BEE1": {
+      "n": 20,
+      "acc": 0.85
+    },
+    "CHRISTMAS1": {
+      "n": 20,
+      "acc": 0.9
+    },
+    "SHAVE1": {
+      "n": 20,
+      "acc": 0.75
+    },
+    "PATIENT2": {
+      "n": 20,
+      "acc": 0.9
+    },
+    "ELEVATOR1": {
+      "n": 20,
+      "acc": 0.9
+    },
+    "LETTUCE1": {
+      "n": 21,
+      "acc": 0.9523809523809523
+    },
+    "RESEARCH1": {
+      "n": 21,
+      "acc": 0.9523809523809523
+    },
+    "TYPE1": {
+      "n": 21,
+      "acc": 1.0
+    },
+    "RECENT1": {
+      "n": 21,
+      "acc": 0.9047619047619048
+    },
+    "CANCEL1": {
+      "n": 22,
+      "acc": 0.9090909090909091
+    },
+    "CLOUD1": {
+      "n": 22,
+      "acc": 0.9545454545454546
+    },
+    "DEAF1": {
+      "n": 19,
+      "acc": 0.8947368421052632
+    },
+    "MECHANIC1": {
+      "n": 19,
+      "acc": 0.8421052631578947
+    },
+    "PARTY1": {
+      "n": 19,
+      "acc": 0.8947368421052632
+    },
+    "ROCKINGCHAIR1": {
+      "n": 19,
+      "acc": 0.8421052631578947
+    },
+    "DRAG1": {
+      "n": 20,
+      "acc": 1.0
+    },
+    "MICROSCOPE1": {
+      "n": 20,
+      "acc": 0.8
+    },
+    "DOWNSIZE1": {
+      "n": 20,
+      "acc": 0.95
+    },
+    "DARK1": {
+      "n": 18,
+      "acc": 1.0
+    },
+    "BITE1": {
+      "n": 18,
+      "acc": 0.7777777777777778
+    },
+    "DEMAND1": {
+      "n": 18,
+      "acc": 0.8888888888888888
+    },
+    "BREAKFAST1": {
+      "n": 18,
+      "acc": 0.8888888888888888
+    },
+    "EDIT1": {
+      "n": 19,
+      "acc": 0.9473684210526315
+    },
+    "AXE1": {
+      "n": 19,
+      "acc": 1.0
+    },
+    "LUNCH1": {
+      "n": 19,
+      "acc": 0.7368421052631579
+    },
+    "NOON1": {
+      "n": 19,
+      "acc": 0.8421052631578947
+    },
+    "RIVER1": {
+      "n": 19,
+      "acc": 1.0
+    },
+    "THIRD1": {
+      "n": 20,
+      "acc": 0.75
+    },
+    "CALENDAR1": {
+      "n": 20,
+      "acc": 1.0
+    },
+    "SPECIAL1": {
+      "n": 20,
+      "acc": 1.0
+    },
+    "TAKEOFF1": {
+      "n": 21,
+      "acc": 1.0
+    },
+    "DECIDE1": {
+      "n": 18,
+      "acc": 0.8888888888888888
+    },
+    "CANCER1": {
+      "n": 19,
+      "acc": 0.7894736842105263
+    },
+    "TWINS1": {
+      "n": 19,
+      "acc": 0.8421052631578947
+    },
+    "LOCK1": {
+      "n": 19,
+      "acc": 0.9473684210526315
+    },
+    "GUESS1": {
+      "n": 19,
+      "acc": 0.9473684210526315
+    },
+    "CONFUSED1": {
+      "n": 19,
+      "acc": 0.9473684210526315
+    },
+    "BACKPACK1": {
+      "n": 18,
+      "acc": 0.8333333333333334
+    },
+    "HALLOWEEN1": {
+      "n": 18,
+      "acc": 0.8888888888888888
+    },
+    "HURDLE-TRIP1": {
+      "n": 16,
+      "acc": 1.0
+    },
+    "THEY1": {
+      "n": 18,
+      "acc": 0.8888888888888888
+    },
+    "DEVELOP1": {
+      "n": 17,
+      "acc": 1.0
+    },
+    "APPEAR": {
+      "n": 18,
+      "acc": 0.9444444444444444
+    },
+    "ALARM": {
+      "n": 18,
+      "acc": 1.0
+    },
+    "ACTION": {
+      "n": 18,
+      "acc": 0.9444444444444444
+    },
+    "BOWL": {
+      "n": 18,
+      "acc": 0.9444444444444444
+    },
+    "DISAPPEAR": {
+      "n": 18,
+      "acc": 1.0
+    },
+    "CLEAR": {
+      "n": 18,
+      "acc": 1.0
+    },
+    "CITY1": {
+      "n": 18,
+      "acc": 1.0
+    },
+    "COCACOLA": {
+      "n": 18,
+      "acc": 1.0
+    },
+    "CONCEPT": {
+      "n": 18,
+      "acc": 1.0
+    },
+    "CORN2": {
+      "n": 18,
+      "acc": 0.9444444444444444
+    },
+    "COVERUP": {
+      "n": 18,
+      "acc": 1.0
+    },
+    "CHANNEL": {
+      "n": 18,
+      "acc": 0.5
+    },
+    "CHOCOLATE": {
+      "n": 18,
+      "acc": 0.8888888888888888
+    },
+    "BRAVE": {
+      "n": 18,
+      "acc": 0.7777777777777778
+    },
+    "CABINET": {
+      "n": 18,
+      "acc": 1.0
+    },
+    "BUTTERFLY": {
+      "n": 18,
+      "acc": 1.0
+    },
+    "CANCELLATION": {
+      "n": 18,
+      "acc": 0.8888888888888888
+    },
+    "HAMMER": {
+      "n": 18,
+      "acc": 0.7222222222222222
+    },
+    "GULLIBLE": {
+      "n": 18,
+      "acc": 0.7222222222222222
+    },
+    "GREECE": {
+      "n": 18,
+      "acc": 0.7777777777777778
+    },
+    "GREEN": {
+      "n": 18,
+      "acc": 0.3888888888888889
+    },
+    "FUTURE": {
+      "n": 18,
+      "acc": 0.6111111111111112
+    },
+    "HUSBAND": {
+      "n": 18,
+      "acc": 0.9444444444444444
+    },
+    "HEARING": {
+      "n": 18,
+      "acc": 0.8333333333333334
+    },
+    "LIGHTER": {
+      "n": 18,
+      "acc": 0.6111111111111112
+    },
+    "FAULT": {
+      "n": 18,
+      "acc": 0.8888888888888888
+    },
+    "EUROPE": {
+      "n": 18,
+      "acc": 0.7777777777777778
+    },
+    "EXPLANATION": {
+      "n": 18,
+      "acc": 0.9444444444444444
+    },
+    "EGYPT": {
+      "n": 18,
+      "acc": 0.7777777777777778
+    },
+    "PAIN": {
+      "n": 18,
+      "acc": 0.9444444444444444
+    }
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 4.4508,
+      "train_acc": 0.0141,
+      "val_loss": 4.1066,
+      "val_acc": 0.0311,
+      "val_top5": 0.161,
+      "lr": 0.001,
+      "sec": 20.3
+    },
+    {
+      "epoch": 2,
+      "train_loss": 3.8733,
+      "train_acc": 0.0533,
+      "val_loss": 3.5431,
+      "val_acc": 0.0734,
+      "val_top5": 0.3362,
+      "lr": 0.001,
+      "sec": 18.6
+    },
+    {
+      "epoch": 3,
+      "train_loss": 3.4329,
+      "train_acc": 0.0987,
+      "val_loss": 3.2476,
+      "val_acc": 0.1497,
+      "val_top5": 0.4209,
+      "lr": 0.001,
+      "sec": 17.5
+    },
+    {
+      "epoch": 4,
+      "train_loss": 3.1252,
+      "train_acc": 0.1592,
+      "val_loss": 2.9979,
+      "val_acc": 0.1695,
+      "val_top5": 0.5,
+      "lr": 0.001,
+      "sec": 17.9
+    },
+    {
+      "epoch": 5,
+      "train_loss": 2.8605,
+      "train_acc": 0.2125,
+      "val_loss": 2.7957,
+      "val_acc": 0.2373,
+      "val_top5": 0.6186,
+      "lr": 0.001,
+      "sec": 30.9
+    },
+    {
+      "epoch": 6,
+      "train_loss": 2.642,
+      "train_acc": 0.2464,
+      "val_loss": 2.5686,
+      "val_acc": 0.274,
+      "val_top5": 0.6554,
+      "lr": 0.001,
+      "sec": 21.0
+    },
+    {
+      "epoch": 7,
+      "train_loss": 2.4277,
+      "train_acc": 0.3047,
+      "val_loss": 2.4159,
+      "val_acc": 0.3249,
+      "val_top5": 0.6977,
+      "lr": 0.001,
+      "sec": 20.0
+    },
+    {
+      "epoch": 8,
+      "train_loss": 2.275,
+      "train_acc": 0.327,
+      "val_loss": 2.2995,
+      "val_acc": 0.3616,
+      "val_top5": 0.7345,
+      "lr": 0.001,
+      "sec": 20.1
+    },
+    {
+      "epoch": 9,
+      "train_loss": 2.119,
+      "train_acc": 0.3658,
+      "val_loss": 2.2109,
+      "val_acc": 0.3503,
+      "val_top5": 0.7345,
+      "lr": 0.001,
+      "sec": 20.0
+    },
+    {
+      "epoch": 10,
+      "train_loss": 2.0047,
+      "train_acc": 0.4,
+      "val_loss": 2.1651,
+      "val_acc": 0.3757,
+      "val_top5": 0.7542,
+      "lr": 0.001,
+      "sec": 19.8
+    },
+    {
+      "epoch": 11,
+      "train_loss": 1.9094,
+      "train_acc": 0.4157,
+      "val_loss": 2.0622,
+      "val_acc": 0.4124,
+      "val_top5": 0.7881,
+      "lr": 0.001,
+      "sec": 19.3
+    },
+    {
+      "epoch": 12,
+      "train_loss": 1.7827,
+      "train_acc": 0.4687,
+      "val_loss": 1.9729,
+      "val_acc": 0.4294,
+      "val_top5": 0.7853,
+      "lr": 0.001,
+      "sec": 20.0
+    },
+    {
+      "epoch": 13,
+      "train_loss": 1.7057,
+      "train_acc": 0.4781,
+      "val_loss": 2.0451,
+      "val_acc": 0.404,
+      "val_top5": 0.7881,
+      "lr": 0.001,
+      "sec": 20.0
+    },
+    {
+      "epoch": 14,
+      "train_loss": 1.6534,
+      "train_acc": 0.4915,
+      "val_loss": 1.9242,
+      "val_acc": 0.4548,
+      "val_top5": 0.8023,
+      "lr": 0.001,
+      "sec": 20.6
+    },
+    {
+      "epoch": 15,
+      "train_loss": 1.5855,
+      "train_acc": 0.5191,
+      "val_loss": 1.9161,
+      "val_acc": 0.4435,
+      "val_top5": 0.8164,
+      "lr": 0.001,
+      "sec": 24.4
+    },
+    {
+      "epoch": 16,
+      "train_loss": 1.513,
+      "train_acc": 0.5295,
+      "val_loss": 1.7906,
+      "val_acc": 0.4633,
+      "val_top5": 0.8362,
+      "lr": 0.001,
+      "sec": 28.2
+    },
+    {
+      "epoch": 17,
+      "train_loss": 1.4188,
+      "train_acc": 0.5511,
+      "val_loss": 1.7456,
+      "val_acc": 0.5198,
+      "val_top5": 0.8362,
+      "lr": 0.001,
+      "sec": 31.1
+    },
+    {
+      "epoch": 18,
+      "train_loss": 1.3427,
+      "train_acc": 0.5768,
+      "val_loss": 1.8789,
+      "val_acc": 0.4576,
+      "val_top5": 0.8107,
+      "lr": 0.001,
+      "sec": 31.8
+    },
+    {
+      "epoch": 19,
+      "train_loss": 1.3202,
+      "train_acc": 0.5893,
+      "val_loss": 1.7211,
+      "val_acc": 0.5056,
+      "val_top5": 0.8362,
+      "lr": 0.001,
+      "sec": 31.8
+    },
+    {
+      "epoch": 20,
+      "train_loss": 1.2289,
+      "train_acc": 0.6182,
+      "val_loss": 1.7591,
+      "val_acc": 0.5085,
+      "val_top5": 0.8277,
+      "lr": 0.001,
+      "sec": 32.5
+    },
+    {
+      "epoch": 21,
+      "train_loss": 1.2236,
+      "train_acc": 0.6138,
+      "val_loss": 1.7056,
+      "val_acc": 0.4944,
+      "val_top5": 0.8672,
+      "lr": 0.001,
+      "sec": 33.6
+    },
+    {
+      "epoch": 22,
+      "train_loss": 1.1714,
+      "train_acc": 0.6266,
+      "val_loss": 1.7423,
+      "val_acc": 0.5141,
+      "val_top5": 0.8418,
+      "lr": 0.0005,
+      "sec": 34.6
+    },
+    {
+      "epoch": 23,
+      "train_loss": 0.9937,
+      "train_acc": 0.6969,
+      "val_loss": 1.6621,
+      "val_acc": 0.5424,
+      "val_top5": 0.8588,
+      "lr": 0.0005,
+      "sec": 35.8
+    },
+    {
+      "epoch": 24,
+      "train_loss": 0.9147,
+      "train_acc": 0.7091,
+      "val_loss": 1.6092,
+      "val_acc": 0.5254,
+      "val_top5": 0.8644,
+      "lr": 0.0005,
+      "sec": 36.4
+    },
+    {
+      "epoch": 25,
+      "train_loss": 0.8693,
+      "train_acc": 0.7266,
+      "val_loss": 1.6113,
+      "val_acc": 0.548,
+      "val_top5": 0.8559,
+      "lr": 0.0005,
+      "sec": 35.7
+    },
+    {
+      "epoch": 26,
+      "train_loss": 0.8284,
+      "train_acc": 0.7357,
+      "val_loss": 1.6554,
+      "val_acc": 0.5141,
+      "val_top5": 0.8531,
+      "lr": 0.0005,
+      "sec": 35.8
+    },
+    {
+      "epoch": 27,
+      "train_loss": 0.7837,
+      "train_acc": 0.752,
+      "val_loss": 1.6614,
+      "val_acc": 0.5311,
+      "val_top5": 0.8559,
+      "lr": 0.0005,
+      "sec": 36.2
+    },
+    {
+      "epoch": 28,
+      "train_loss": 0.7443,
+      "train_acc": 0.7699,
+      "val_loss": 1.7212,
+      "val_acc": 0.5254,
+      "val_top5": 0.839,
+      "lr": 0.0005,
+      "sec": 35.8
+    },
+    {
+      "epoch": 29,
+      "train_loss": 0.744,
+      "train_acc": 0.7646,
+      "val_loss": 1.6703,
+      "val_acc": 0.5367,
+      "val_top5": 0.8362,
+      "lr": 0.0005,
+      "sec": 37.0
+    },
+    {
+      "epoch": 30,
+      "train_loss": 0.7041,
+      "train_acc": 0.7793,
+      "val_loss": 1.6602,
+      "val_acc": 0.5339,
+      "val_top5": 0.8616,
+      "lr": 0.00025,
+      "sec": 38.2
+    },
+    {
+      "epoch": 31,
+      "train_loss": 0.6393,
+      "train_acc": 0.8144,
+      "val_loss": 1.6335,
+      "val_acc": 0.5395,
+      "val_top5": 0.8475,
+      "lr": 0.00025,
+      "sec": 38.9
+    },
+    {
+      "epoch": 32,
+      "train_loss": 0.5886,
+      "train_acc": 0.8273,
+      "val_loss": 1.6465,
+      "val_acc": 0.5226,
+      "val_top5": 0.8588,
+      "lr": 0.00025,
+      "sec": 39.2
+    },
+    {
+      "epoch": 33,
+      "train_loss": 0.5666,
+      "train_acc": 0.8395,
+      "val_loss": 1.6379,
+      "val_acc": 0.5565,
+      "val_top5": 0.8503,
+      "lr": 0.00025,
+      "sec": 38.7
+    },
+    {
+      "epoch": 34,
+      "train_loss": 0.5501,
+      "train_acc": 0.8392,
+      "val_loss": 1.6531,
+      "val_acc": 0.5282,
+      "val_top5": 0.8475,
+      "lr": 0.00025,
+      "sec": 39.7
+    },
+    {
+      "epoch": 35,
+      "train_loss": 0.5435,
+      "train_acc": 0.8417,
+      "val_loss": 1.6594,
+      "val_acc": 0.5424,
+      "val_top5": 0.8503,
+      "lr": 0.00025,
+      "sec": 39.0
+    },
+    {
+      "epoch": 36,
+      "train_loss": 0.5263,
+      "train_acc": 0.8483,
+      "val_loss": 1.6508,
+      "val_acc": 0.5395,
+      "val_top5": 0.8503,
+      "lr": 0.00025,
+      "sec": 39.1
+    },
+    {
+      "epoch": 37,
+      "train_loss": 0.5044,
+      "train_acc": 0.8602,
+      "val_loss": 1.6779,
+      "val_acc": 0.548,
+      "val_top5": 0.839,
+      "lr": 0.00025,
+      "sec": 39.9
+    },
+    {
+      "epoch": 38,
+      "train_loss": 0.5031,
+      "train_acc": 0.8567,
+      "val_loss": 1.6709,
+      "val_acc": 0.5593,
+      "val_top5": 0.8475,
+      "lr": 0.00025,
+      "sec": 35.7
+    },
+    {
+      "epoch": 39,
+      "train_loss": 0.4705,
+      "train_acc": 0.8724,
+      "val_loss": 1.696,
+      "val_acc": 0.5395,
+      "val_top5": 0.8362,
+      "lr": 0.00025,
+      "sec": 35.5
+    },
+    {
+      "epoch": 40,
+      "train_loss": 0.4609,
+      "train_acc": 0.8712,
+      "val_loss": 1.6837,
+      "val_acc": 0.5452,
+      "val_top5": 0.8531,
+      "lr": 0.00025,
+      "sec": 32.8
+    }
+  ],
+  "checkpoint": "/workspace/asl-citizen-bilstm/artifacts/asl_citizen_bilstm100.pt",
+  "blockers": [
+    "Val set relatively small vs 100 classes \u2014 val accuracy noisy",
+    "CPU-only training",
+    "Do NOT wire into SignSpeak until validated",
+    "50-class artifacts left untouched (v2.1.2 ship separate)"
+  ],
+  "notes": "100-class supervised BiLSTM; same arch as 20/50-class (proj=128, hidden=128, layers=2, attention)."
+}

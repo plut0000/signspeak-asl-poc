@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["@google/genai", "onnxruntime-node"],
   outputFileTracingIncludes: {
     "/api/interpret": [
-      "./models/asl-citizen-bilstm50/**/*",
+      "./models/asl-citizen-bilstm100/**/*",
       "./node_modules/onnxruntime-node/**/*",
     ],
   },
