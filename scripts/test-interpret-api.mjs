@@ -14,13 +14,14 @@ function makeLandmarks({ frames, withHands }) {
     packed[t * 225 + 11 * 3 + 1] = 0.3;
     packed[t * 225 + 12 * 3 + 1] = 0.3;
     if (withHands) {
-      // Populate both hands. A single moving joint is too weak for the
-      // 200-class softmax to clear the 55% dedicated-path threshold.
+      // Populate both hands with a small periodic motion. Weak linear drift
+      // is too flat for the 200-class softmax to clear the 55% threshold.
+      const phase = (t / Math.max(frames, 1)) * Math.PI * 2;
       for (let j = 0; j < 21; j++) {
-        packed[t * 225 + (33 + j) * 3] = 0.45 + 0.01 * j;
-        packed[t * 225 + (33 + j) * 3 + 1] = 0.5;
-        packed[t * 225 + (54 + j) * 3] = 0.55 + 0.01 * j + t * 0.0005;
-        packed[t * 225 + (54 + j) * 3 + 1] = 0.52;
+        packed[t * 225 + (33 + j) * 3] = 0.35 + 0.02 * j + 0.05 * Math.sin(phase);
+        packed[t * 225 + (33 + j) * 3 + 1] = 0.45 + 0.02 * Math.sin(phase + j * 0.2);
+        packed[t * 225 + (54 + j) * 3] = 0.65 - 0.02 * j + 0.05 * Math.cos(phase);
+        packed[t * 225 + (54 + j) * 3 + 1] = 0.55 + 0.02 * Math.cos(phase + j * 0.3);
       }
     }
   }
