@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { RECORD_SECONDS } from "@/lib/media";
+import { DEMO_VERSION } from "@/lib/patch-notes";
 import { Camera, Hand, Volume2 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -28,7 +29,7 @@ const steps = [
   {
     icon: Hand,
     title: "A dedicated model reads the sign",
-    body: "A short isolated sign goes to the 20-class ASL Citizen BiLSTM; Gemini turns that gloss into English. Longer clips skip the classifier and use Gemini on the full video.",
+    body: "A short isolated sign goes to the 50-class ASL Citizen BiLSTM; Gemini turns that gloss into English. Longer clips skip the classifier and use Gemini on the full video.",
   },
   {
     icon: Volume2,
@@ -45,14 +46,14 @@ export default function HomePage() {
         <section className="grid items-center gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
           <div className="space-y-6">
             <p className="text-sm font-medium tracking-wide text-primary uppercase">
-              DECA Entrepreneurship Innovation Plan · Demo v2.1.1
+              DECA Entrepreneurship Innovation Plan · Demo v{DEMO_VERSION}
             </p>
             <h1 className="font-heading max-w-xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
               Sign in ASL. Read English. Hear it spoken.
             </h1>
             <p className="max-w-xl text-base leading-7 text-muted-foreground sm:text-lg">
               SignSpeak is a feasibility demo: someone signs on camera. A
-              short isolated sign can use the dedicated 20-class BiLSTM;
+              short isolated sign can use the dedicated 50-class BiLSTM;
               longer clips use Gemini on the full video. Gemini also cleans a
               confident gloss into English, and the site speaks the text
               aloud. It is a student proof of concept, not a certified
@@ -131,15 +132,15 @@ export default function HomePage() {
             Honest limits
           </h2>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
-            The dedicated model is an RL-fine-tuned 20-class ASL Citizen
-            BiLSTM (~82.8% test top-1, up from 77.3%). It is used only for a
-            short, one-sign-like clip with a confident prediction. Long
-            sentences, songs, and conversation skip that model and use Gemini
-            video. Gemini is also the fallback when confidence is low or
-            landmarks fail. Accuracy varies with lighting, camera angle, and
-            whether live MediaPipe matches the training keypoints. This proves
-            the product loop is demoable. It is not a substitute for a human
-            interpreter.
+            The dedicated model is an RL-fine-tuned 50-class ASL Citizen
+            BiLSTM (~89.7% test top-1, up from 87.4% supervised). It is used
+            only for a short, one-sign-like clip with a confident prediction.
+            Long sentences, songs, and conversation skip that model and use
+            Gemini video. Gemini is also the fallback when confidence is low
+            or landmarks fail. Accuracy varies with lighting, camera angle,
+            and whether live MediaPipe matches the training keypoints. This
+            proves the product loop is demoable. It is not a substitute for a
+            human interpreter.
           </p>
         </section>
       </main>

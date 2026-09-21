@@ -7,8 +7,12 @@ processed keypoints (`SharoonArshad/asl-citizen-processed-200`).
 **License: CC BY-NC-SA 4.0** — do not use this model or the derived keypoints
 commercially.
 
-**Production default is v2.1 (RL).** `/api/interpret` loads
-`asl_citizen_bilstm20_rl.onnx` plus the sidecar `.onnx.data` file.
+**No longer the production default.** Demo v2.1.2 loads the 50-class RL graph
+in `../asl-citizen-bilstm50/`. These 20-class v2.1 weights are kept for
+reference.
+
+Previous production default was v2.1 (RL). `/api/interpret` no longer loads
+`asl_citizen_bilstm20_rl.onnx`.
 
 | Version | Split | Top-1 | Top-5 |
 | --- | --- | --- | --- |
@@ -24,7 +28,7 @@ Vocabulary is unchanged: 20 isolated signs. See `rl_report_v21.json` and
 
 | File | Role |
 | --- | --- |
-| `asl_citizen_bilstm20_rl.onnx` + `.onnx.data` | **Production** CPU graph for Vercel / `onnxruntime-node` |
+| `asl_citizen_bilstm20_rl.onnx` + `.onnx.data` | Previous production CPU graph (v2.1, 20-class) |
 | `asl_citizen_bilstm20_rl.pt` | RL-fine-tuned PyTorch checkpoint (reference) |
 | `rl_report_v21.json` | v2.1 metrics (before/after, per-class) |
 | `asl_citizen_bilstm20.pt` | v2.0 supervised CE checkpoint (baseline) |
