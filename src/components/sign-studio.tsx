@@ -27,6 +27,7 @@ import {
   DEDICATED_MODEL_LABEL,
   friendlyVocabList,
 } from "@/lib/asl-citizen";
+import { explainDedicatedSkip } from "@/lib/dedicated-skip-copy";
 import type {
   AppMode,
   InterpretFailure,
@@ -58,6 +59,7 @@ export function SignStudio({ mode }: { mode: AppMode }) {
   } = useSpeech();
   const {
     status: trackerStatus,
+    lowHandCoverage,
     prepare: prepareLandmarks,
     start: startLandmarks,
     stop: stopLandmarks,
@@ -74,6 +76,7 @@ export function SignStudio({ mode }: { mode: AppMode }) {
   const [session, setSession] = useState<SessionStatus>("idle");
   const [result, setResult] = useState<InterpretSuccess | null>(null);
   const [error, setError] = useState("");
+  const [skipNote, setSkipNote] = useState("");
   const [processingLongClip, setProcessingLongClip] = useState(false);
 
   const clearTimers = useCallback(() => {
@@ -89,6 +92,7 @@ export function SignStudio({ mode }: { mode: AppMode }) {
     stopSpeech();
     setResult(null);
     setError("");
+    setSkipNote("");
     setSession("idle");
     setProcessingLongClip(false);
   }, [stopSpeech]);
@@ -102,6 +106,7 @@ export function SignStudio({ mode }: { mode: AppMode }) {
       setSession("processing");
       setProcessingLongClip(durationMs > LONG_CLIP_HINT_MS);
       setError("");
+      setSkipNote("");
       const form = new FormData();
       const mimeType = blob.type || "video/webm";
       form.append("video", blob, `signing.${extensionForMime(mimeType)}`);
@@ -140,12 +145,19 @@ export function SignStudio({ mode }: { mode: AppMode }) {
           | InterpretFailure;
 
         if (!response.ok || "error" in payload) {
+          const failure = payload as InterpretFailure;
           const message =
-            "error" in payload
-              ? payload.error
+            "error" in payload && failure.error
+              ? failure.error
               : "Translation failed. Please try again.";
           setSession("error");
           setError(message);
+          setSkipNote(
+            explainDedicatedSkip({
+              fallbackReason: failure.fallbackReason,
+              dedicatedTop: failure.dedicatedTop,
+            }) ?? "",
+          );
           return;
         }
 
@@ -158,6 +170,7 @@ export function SignStudio({ mode }: { mode: AppMode }) {
         }
         setSession("error");
         setError("Could not reach the translation service. Check that the app is running.");
+        setSkipNote("");
       }
     },
     [speak],
@@ -360,6 +373,14 @@ export function SignStudio({ mode }: { mode: AppMode }) {
                 )}
               </div>
             ) : null}
+            {session === "recording" && lowHandCoverage ? (
+              <p
+                className="pointer-events-none absolute inset-x-3 bottom-3 rounded-lg bg-background/90 px-3 py-2 text-center text-sm font-medium text-foreground shadow-sm ring-1 ring-foreground/10"
+                role="status"
+              >
+                Keep both hands in frame
+              </p>
+            ) : null}
             {session === "processing" ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/70">
                 <LoaderCircle className="size-7 animate-spin text-primary" />
@@ -492,10 +513,13 @@ export function SignStudio({ mode }: { mode: AppMode }) {
                 <AlertCircle />
                 <AlertTitle>Could not translate</AlertTitle>
                 <AlertDescription>
-                  {error}
-                  {/busy|rate-limited|try again/i.test(error)
-                    ? null
-                    : " You can tap Sign again."}
+                  <p>
+                    {error}
+                    {/busy|rate-limited|try again/i.test(error)
+                      ? null
+                      : " You can tap Sign again."}
+                  </p>
+                  {skipNote ? <p>{skipNote}</p> : null}
                 </AlertDescription>
               </Alert>
             ) : (

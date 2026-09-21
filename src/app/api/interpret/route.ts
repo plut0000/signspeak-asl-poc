@@ -16,7 +16,7 @@ import {
   interpretAslVideo,
 } from "@/lib/gemini";
 import { stripAudioTrack } from "@/lib/strip-video-audio";
-import type { InterpretSuccess } from "@/lib/types";
+import type { DedicatedTop, InterpretSuccess } from "@/lib/types";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -25,7 +25,10 @@ export const maxDuration = 120;
 const MIN_BYTES = 8_000;
 const MAX_BYTES = 18 * 1024 * 1024;
 
+type DedicatedAttempt = Awaited<ReturnType<typeof tryDedicatedPath>>;
+
 export async function POST(request: Request) {
+  let dedicatedAttempt: DedicatedAttempt | undefined;
   try {
     let form: FormData;
     try {
@@ -70,7 +73,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const dedicatedAttempt = await tryDedicatedPath(form);
+    dedicatedAttempt = await tryDedicatedPath(form);
     if (dedicatedAttempt.ok) {
       return NextResponse.json(dedicatedAttempt.result);
     }
@@ -88,24 +91,38 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ...result,
       source: "gemini" as const,
-      fallbackReason: dedicatedAttempt.reason,
-      dedicatedTop: dedicatedAttempt.prediction
-        ? {
-            gloss: dedicatedAttempt.prediction.gloss,
-            glossLabel: dedicatedAttempt.prediction.glossLabel,
-            confidence: dedicatedAttempt.prediction.confidence,
-          }
-        : undefined,
+      ...dedicatedSkipFields(dedicatedAttempt),
     } satisfies InterpretSuccess);
   } catch (error) {
     console.error("ASL interpret failed:", error);
     const message =
       error instanceof Error ? error.message : "Translation failed.";
     return NextResponse.json(
-      { error: friendlyGeminiError(message) },
+      {
+        error: friendlyGeminiError(message),
+        ...dedicatedSkipFields(dedicatedAttempt),
+      },
       { status: 502 },
     );
   }
+}
+
+function dedicatedSkipFields(attempt: DedicatedAttempt | undefined): {
+  fallbackReason?: string;
+  dedicatedTop?: DedicatedTop;
+} {
+  if (!attempt || attempt.ok) return {};
+  const dedicatedTop = attempt.prediction
+    ? {
+        gloss: attempt.prediction.gloss,
+        glossLabel: attempt.prediction.glossLabel,
+        confidence: attempt.prediction.confidence,
+      }
+    : undefined;
+  return {
+    fallbackReason: attempt.reason,
+    ...(dedicatedTop ? { dedicatedTop } : {}),
+  };
 }
 
 async function tryDedicatedPath(form: FormData): Promise<

@@ -40,4 +40,6 @@ export type InterpretSuccess = {
 
 export type InterpretFailure = {
   error: string;
+  fallbackReason?: string;
+  dedicatedTop?: DedicatedTop;
 };
