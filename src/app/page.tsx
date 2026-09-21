@@ -1,3 +1,4 @@
+import { PatchNotes } from "@/components/patch-notes";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,7 +45,7 @@ export default function HomePage() {
         <section className="grid items-center gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
           <div className="space-y-6">
             <p className="text-sm font-medium tracking-wide text-primary uppercase">
-              DECA Entrepreneurship Innovation Plan
+              DECA Entrepreneurship Innovation Plan · Demo v2.1
             </p>
             <h1 className="font-heading max-w-xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
               Sign in ASL. Read English. Hear it spoken.
@@ -64,6 +65,7 @@ export default function HomePage() {
                 <Link href="#how-it-works">How it works</Link>
               </Button>
             </div>
+            <PatchNotes />
           </div>
 
           <Card className="bg-card/80">
@@ -128,13 +130,13 @@ export default function HomePage() {
             Honest limits
           </h2>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
-            The dedicated model is trained on 20 isolated ASL Citizen glosses
-            (~77% test top-1). It expects a single-sign-like clip, not a long
-            sentence or song. Gemini is still the open-vocabulary fallback when
-            confidence is low or landmarks fail. Accuracy varies with lighting,
-            camera angle, and whether live MediaPipe matches the training
-            keypoints. This proves the product loop is demoable. It is not a
-            substitute for a human interpreter.
+            The dedicated model is an RL-fine-tuned 20-class ASL Citizen
+            BiLSTM (~82.8% test top-1, up from 77.3%). It expects a
+            single-sign-like clip, not a long sentence or song. Gemini is still
+            the open-vocabulary fallback when confidence is low or landmarks
+            fail. Accuracy varies with lighting, camera angle, and whether live
+            MediaPipe matches the training keypoints. This proves the product
+            loop is demoable. It is not a substitute for a human interpreter.
           </p>
         </section>
       </main>

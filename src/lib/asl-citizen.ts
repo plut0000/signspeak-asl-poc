@@ -23,6 +23,10 @@ export const ASL_CITIZEN_GLOSSES = [
 
 export type AslCitizenGloss = (typeof ASL_CITIZEN_GLOSSES)[number];
 
+export const DEDICATED_MODEL_VERSION = "2.1";
+export const DEDICATED_MODEL_VARIANT = "RL";
+export const DEDICATED_MODEL_LABEL = "Model v2.1 (RL)";
+export const DEDICATED_ONNX_FILENAME = "asl_citizen_bilstm20_rl.onnx";
 export const DEFAULT_DEDICATED_THRESHOLD = 0.45;
 export const MIN_LANDMARK_FRAMES = 8;
 export const MIN_HAND_FRAMES = 4;

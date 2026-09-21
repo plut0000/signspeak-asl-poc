@@ -1,5 +1,8 @@
 import {
   ASL_CITIZEN_GLOSSES,
+  DEDICATED_MODEL_LABEL,
+  DEDICATED_MODEL_VARIANT,
+  DEDICATED_MODEL_VERSION,
   getDedicatedThreshold,
   isDedicatedEnabled,
 } from "@/lib/asl-citizen";
@@ -15,6 +18,9 @@ export function GET() {
       threshold: getDedicatedThreshold(),
       classes: ASL_CITIZEN_GLOSSES.length,
       architecture: "BiLSTM+attn",
+      version: DEDICATED_MODEL_VERSION,
+      variant: DEDICATED_MODEL_VARIANT,
+      label: DEDICATED_MODEL_LABEL,
     },
   });
 }

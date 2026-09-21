@@ -9,6 +9,11 @@ existing full-video Gemini interpret path still runs.
 This is a **feasibility demo**, not production-grade ASL recognition and not a
 substitute for a human interpreter.
 
+**Demo v2.1:** the dedicated 20-word ASL Citizen BiLSTM is RL-fine-tuned
+(REINFORCE + light CE mix). Held-out test top-1 is **82.8%** (was 77.3%;
++~5.5 pts). Top-5 stays ~99%. Vocabulary is still the same 20 isolated signs.
+See `PATCH_NOTES.md`.
+
 **License:** ASL Citizen derived keypoints and the bundled BiLSTM are
 **CC BY-NC-SA 4.0** (research / non-commercial DECA POC). See
 `models/asl-citizen-bilstm20/README.md`.
@@ -97,10 +102,13 @@ webcam clip
        existing Gemini full-video interpret (or mock)
 ```
 
-Weights and the export script live in `models/asl-citizen-bilstm20/`
-(`asl_citizen_bilstm20.pt`, `asl_citizen_bilstm20.onnx`, `label_map.json`).
-Architecture is `train_bilstm.py`: Linear 450→128, 2-layer bidirectional LSTM
-(h=128), attention pool, Linear→20. Reported test top-1 is **77.29%**.
+Weights and the export script live in `models/asl-citizen-bilstm20/`. Production
+inference uses the v2.1 RL graph
+(`asl_citizen_bilstm20_rl.onnx` + `asl_citizen_bilstm20_rl.onnx.data`). The
+`.pt` checkpoint and the earlier supervised CE ONNX are kept alongside for
+reference. Architecture is `train_bilstm.py`: Linear 450→128, 2-layer
+bidirectional LSTM (h=128), attention pool, Linear→20. Reported test top-1 is
+**82.8%** (v2.0 CE was 77.3%).
 
 No extra secrets and no GPU box. Inference is small enough for Vercel Node
 functions (`onnxruntime-node` + traced ONNX file).
@@ -152,7 +160,8 @@ yellow mock banner appears and a sample sentence is returned.
 - `src/lib/mediapipe-landmarks.ts` — browser Pose + Hands
 - `src/lib/gemini.ts` — gloss cleanup, video interpret, mock payload
 - `src/lib/tts.ts` — `window.speechSynthesis`
-- `models/asl-citizen-bilstm20/` — checkpoint, ONNX, labels, train script
+- `models/asl-citizen-bilstm20/` — v2.1 RL ONNX (default), v2.0 CE baseline, labels, train script
+- `PATCH_NOTES.md` — judge-facing v2.1 notes (also shown on the landing and demo pages)
 
 No auth, no database, no paid text-to-speech. Browser Web Speech API handles
 voice.

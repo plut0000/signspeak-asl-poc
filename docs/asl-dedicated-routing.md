@@ -27,11 +27,11 @@ function translateClip(video, landmarks, quality):
 
 ## Wiring
 
-1. Train offline → `models/asl-citizen-bilstm20/` (`*.pt`, `label_map.json`, exported `*.onnx`).
+1. Train offline → `models/asl-citizen-bilstm20/` (`*.pt`, `label_map.json`, exported `*.onnx`). Demo **v2.1** loads `asl_citizen_bilstm20_rl.onnx` by default.
 2. Browser: `@mediapipe/tasks-vision` Pose + Hands while recording.
 3. `POST /api/interpret` with `video` plus optional `landmarks` binary + frame counts.
 4. Server: `onnxruntime-node` CPU inference. No GPU box. Only `GEMINI_API_KEY` is required for Gemini.
-5. UI (`sign-studio.tsx`): **Dedicated model** vs **Gemini video** badge, gloss + confidence, Replay voice on `english`.
+5. UI (`sign-studio.tsx`): **Dedicated model** vs **Gemini video** badge, plus **Model v2.1 (RL)** on the dedicated path, gloss + confidence, Replay voice on `english`.
 
 Optional env: `DEDICATED_ASL_ENABLED=true`, `DEDICATED_ASL_THRESHOLD=0.45`.
 

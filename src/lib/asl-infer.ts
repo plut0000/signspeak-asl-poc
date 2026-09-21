@@ -1,4 +1,5 @@
 import {
+  DEDICATED_ONNX_FILENAME,
   FEAT_DIM,
   TARGET_LEN,
   friendlyGloss,
@@ -16,7 +17,8 @@ export type DedicatedPrediction = {
 
 const MODEL_PATH = path.join(
   process.cwd(),
-  "models/asl-citizen-bilstm20/asl_citizen_bilstm20.onnx",
+  "models/asl-citizen-bilstm20",
+  DEDICATED_ONNX_FILENAME,
 );
 
 let sessionPromise: Promise<InferenceSession> | null = null;
