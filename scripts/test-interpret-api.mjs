@@ -15,7 +15,7 @@ function makeLandmarks({ frames, withHands }) {
     packed[t * 225 + 12 * 3 + 1] = 0.3;
     if (withHands) {
       // Populate both hands. A single moving joint is too weak for the
-      // 100-class softmax to clear the 55% dedicated-path threshold.
+      // 200-class softmax to clear the 55% dedicated-path threshold.
       for (let j = 0; j < 21; j++) {
         packed[t * 225 + (33 + j) * 3] = 0.45 + 0.01 * j;
         packed[t * 225 + (33 + j) * 3 + 1] = 0.5;

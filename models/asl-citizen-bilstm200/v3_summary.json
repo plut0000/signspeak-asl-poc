@@ -1,0 +1,16 @@
+{
+  "fallback150_ran": false,
+  "supervised_200_test": 0.8725,
+  "rl_200_before": 0.8725,
+  "rl_200_after": 0.897,
+  "delta_200": 0.0245,
+  "artifacts": {
+    "ckpt200": "/workspace/asl-citizen-bilstm/artifacts/asl_citizen_bilstm200.pt",
+    "ckpt200_rl": "/workspace/asl-citizen-bilstm/artifacts/asl_citizen_bilstm200_rl.pt",
+    "onnx200_rl": "/workspace/asl-citizen-bilstm/artifacts/asl_citizen_bilstm200_rl.onnx",
+    "train_report200": "/workspace/asl-citizen-bilstm/artifacts/train_report200.json",
+    "rl_report_v3": "/workspace/asl-citizen-bilstm/artifacts/rl_report_v3.json",
+    "label_map200": "/workspace/asl-citizen-bilstm/artifacts/label_map200.json",
+    "vocab200": "/workspace/asl-citizen-bilstm/artifacts/vocab200.json"
+  }
+}

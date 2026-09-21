@@ -29,7 +29,7 @@ const steps = [
   {
     icon: Hand,
     title: "A dedicated model reads the sign",
-    body: "A short isolated sign goes to the 100-class ASL Citizen BiLSTM; Gemini turns that gloss into English. Longer clips skip the classifier and use Gemini on the full video.",
+    body: "A short isolated sign goes to the 200-class ASL Citizen BiLSTM; Gemini turns that gloss into English. Longer clips skip the classifier and use Gemini on the full video.",
   },
   {
     icon: Volume2,
@@ -53,7 +53,7 @@ export default function HomePage() {
             </h1>
             <p className="max-w-xl text-base leading-7 text-muted-foreground sm:text-lg">
               SignSpeak is a feasibility demo: someone signs on camera. A
-              short isolated sign can use the dedicated 100-class BiLSTM;
+              short isolated sign can use the dedicated 200-class BiLSTM;
               longer clips use Gemini on the full video. Gemini also cleans a
               confident gloss into English, and the site speaks the text
               aloud. It is a student proof of concept, not a certified
@@ -132,8 +132,8 @@ export default function HomePage() {
             Honest limits
           </h2>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
-            The dedicated model is an RL-fine-tuned 100-class ASL Citizen
-            BiLSTM (~88.9% test top-1, up from ~88.2% supervised). It is used
+            The dedicated model is an RL-fine-tuned 200-class ASL Citizen
+            BiLSTM (~89.7% test top-1, up from ~87.3% supervised). It is used
             only for a short, one-sign-like clip with a confident prediction.
             Long sentences, songs, and conversation skip that model and use
             Gemini video. Gemini is also the fallback when confidence is low

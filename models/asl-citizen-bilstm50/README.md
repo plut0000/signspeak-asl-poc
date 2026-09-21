@@ -7,8 +7,8 @@ processed keypoints (`SharoonArshad/asl-citizen-processed-200`).
 **License: CC BY-NC-SA 4.0** — do not use this model or the derived keypoints
 commercially.
 
-**No longer the production default.** Demo v2.1.3 loads the 100-class RL graph
-in `../asl-citizen-bilstm100/`. These 50-class v2.1.2 weights are kept for
+**No longer the production default.** Demo v3.0 loads the 200-class RL graph
+in `../asl-citizen-bilstm200/`. These 50-class v2.1.2 weights are kept for
 reference.
 
 Previous production default was v2.1.2 (RL, 50-class). `/api/interpret` no
