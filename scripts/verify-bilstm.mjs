@@ -7,9 +7,9 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const MODEL = path.join(
   ROOT,
-  "models/asl-citizen-bilstm20/asl_citizen_bilstm20_rl.onnx",
+  "models/asl-citizen-bilstm50/asl_citizen_bilstm50_rl.onnx",
 );
-const LABELS = path.join(ROOT, "models/asl-citizen-bilstm20/label_map.json");
+const LABELS = path.join(ROOT, "models/asl-citizen-bilstm50/label_map50.json");
 
 function resampleNormalizeVelocity(packed, frames) {
   const joints = 75;
@@ -77,7 +77,7 @@ function assert(cond, message) {
 }
 
 const labelMap = JSON.parse(await readFile(LABELS, "utf8"));
-assert(Object.keys(labelMap.id_to_gloss).length === 20, "expected 20 glosses");
+assert(Object.keys(labelMap.id_to_gloss).length === 50, "expected 50 glosses");
 
 const packed = new Float32Array(30 * 75 * 3);
 for (let t = 0; t < 30; t++) {
@@ -99,7 +99,7 @@ const session = await InferenceSession.create(MODEL, {
 const input = new Tensor("float32", features, [1, 200, 450]);
 const outputs = await session.run({ features: input });
 const logits = Array.from(Object.values(outputs)[0].data);
-assert(logits.length === 20, "20 logits");
+assert(logits.length === 50, "50 logits");
 const max = Math.max(...logits);
 const probs = logits.map((value) => Math.exp(value - max));
 const sum = probs.reduce((a, b) => a + b, 0);
@@ -113,8 +113,9 @@ const top = norm
 console.log(
   JSON.stringify(
     {
-      version: "2.1",
+      version: "2.1.2",
       variant: "RL",
+      classes: 50,
       onnx: MODEL,
       input: [1, 200, 450],
       topGloss: top.gloss,

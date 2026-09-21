@@ -1,14 +1,14 @@
-export const DEMO_VERSION = "2.1.1";
+export const DEMO_VERSION = "2.1.2";
 
 export const PATCH_NOTES = {
   version: DEMO_VERSION,
-  title: "What's new in v2.1.1",
+  title: "What's new in v2.1.2",
   summary:
-    "Long and continuous clips now skip the isolated-sign BiLSTM and use Gemini video. The dedicated model is only for short, high-confidence one-sign clips.",
+    "The dedicated isolated-sign model now covers 50 ASL Citizen glosses with an RL fine-tune. Long and continuous clips still skip BiLSTM and use Gemini video.",
   highlights: [
-    "Recordings longer than ~5 seconds, or landmark sequences longer than a typical isolated sign, go to Gemini video instead of forcing one of 20 glosses.",
-    "Uncertain BiLSTM predictions (confidence below 55%, small top-1 vs top-2 margin, or high entropy) also fall back to Gemini video.",
-    "This stops sticky wrong words such as EAT on songs and conversation clips.",
-    "v2.1 RL weights are unchanged (20 isolated signs, 82.8% test top-1).",
+    "Vocabulary expanded from 20 to 50 isolated signs: the original 20 plus 30 high-frequency ASL Citizen classes (basketball, dog, movie, what for, …).",
+    "Supervised test top-1 87.4% → after RL 89.7% (+~2.4 pts). Top-5 stays around 99%.",
+    "New glosses still strip dataset digits in the UI (BASKETBALL1 → Basketball, WHATFOR1 → What for).",
+    "v2.1.1 routing is unchanged: clips longer than ~5 seconds, or landmark sequences longer than a typical isolated sign, skip BiLSTM. Uncertain predictions (confidence below 55%, small top-1 vs top-2 margin, or high entropy) still fall back to Gemini video.",
   ],
 } as const;

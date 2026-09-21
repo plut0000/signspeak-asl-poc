@@ -17,18 +17,39 @@ function assert(condition, message) {
 
 const routing = await readFile(path.join(ROOT, "src/lib/asl-routing.ts"), "utf8");
 const citizen = await readFile(path.join(ROOT, "src/lib/asl-citizen.ts"), "utf8");
+const infer = await readFile(path.join(ROOT, "src/lib/asl-infer.ts"), "utf8");
+const patchNotes = await readFile(path.join(ROOT, "src/lib/patch-notes.ts"), "utf8");
 
 const MAX_MS = readExportNumber(routing, "MAX_ISOLATED_SIGN_MS");
 const MAX_FRAMES = readExportNumber(routing, "MAX_ISOLATED_SIGN_FRAMES");
 const MARGIN = readExportNumber(routing, "DEFAULT_DEDICATED_MARGIN");
 const MAX_ENTROPY = readExportNumber(routing, "DEFAULT_MAX_NORMALIZED_ENTROPY");
 const THRESHOLD = readExportNumber(citizen, "DEFAULT_DEDICATED_THRESHOLD");
+const glossBlock = citizen.match(
+  /export const ASL_CITIZEN_GLOSSES = \[([\s\S]*?)\] as const/,
+);
+assert(glossBlock, "ASL_CITIZEN_GLOSSES array is missing");
+const glossCount = [...glossBlock[1].matchAll(/"([^"]+)"/g)].length;
 
 assert(MAX_MS === 5_000, "isolated-sign budget should be 5s");
 assert(MAX_FRAMES === 80, "isolated-sign frame budget should be 80");
 assert(THRESHOLD === 0.55, "default dedicated threshold should be 0.55");
 assert(MARGIN === 0.15, "default dedicated margin should be 0.15");
 assert(MAX_ENTROPY === 0.75, "default max normalized entropy should be 0.75");
+assert(glossCount === 50, `expected 50 dedicated glosses, got ${glossCount}`);
+assert(
+  citizen.includes('DEDICATED_MODEL_DIRNAME = "asl-citizen-bilstm50"'),
+  "dedicated model dir should be the 50-class folder",
+);
+assert(
+  citizen.includes("asl_citizen_bilstm50_rl.onnx"),
+  "dedicated ONNX should be the 50-class RL graph",
+);
+assert(
+  infer.includes("DEDICATED_MODEL_DIRNAME"),
+  "inference should load from the versioned dedicated model dir",
+);
+assert(patchNotes.includes('DEMO_VERSION = "2.1.2"'), "demo version should be 2.1.2");
 
 function assessBudget({ frames, durationMs }) {
   if (typeof durationMs === "number" && durationMs > MAX_MS) return false;
@@ -102,6 +123,7 @@ console.log(
       threshold: THRESHOLD,
       margin: MARGIN,
       maxNormalizedEntropy: MAX_ENTROPY,
+      classes: glossCount,
       budgetCases: budgetCases.length,
       predictionCases: predictionCases.length,
       ok: true,

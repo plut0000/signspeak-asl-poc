@@ -1,0 +1,593 @@
+{
+  "version": "2.1.2",
+  "vocab_classes": 50,
+  "vocab_expanded": false,
+  "method": "REINFORCE policy-gradient: softmax Categorical policy; sample action; reward=+1 if action==label else 0; loss = -log_prob(action)*(reward - EMA_baseline) + 0.2*CE; no layers frozen; Adam low LR.",
+  "freeze": "none",
+  "lr": 5e-05,
+  "ce_mix_used": true,
+  "ce_weight": 0.2,
+  "max_epochs": 25,
+  "epochs_ran": 25,
+  "best_epoch": 10,
+  "train_size": 1656,
+  "val_size": 184,
+  "test_size": 972,
+  "batch_size": 32,
+  "device": "cpu",
+  "reward": "+1 if sampled action == label else 0",
+  "baseline": "EMA of batch mean reward (momentum=0.9)",
+  "before": {
+    "val_top1": 0.625,
+    "val_top5": 0.8804,
+    "test_top1": 0.8735,
+    "test_top5": 0.9856
+  },
+  "after": {
+    "val_top1": 0.6304,
+    "val_top5": 0.875,
+    "test_top1": 0.8971,
+    "test_top5": 0.9866
+  },
+  "delta_test_top1": 0.0237,
+  "improved": true,
+  "per_class_test_acc_before_vs_after": {
+    "HELLO": {
+      "n": 18,
+      "before": 0.5,
+      "after": 0.7222222222222222
+    },
+    "NAME": {
+      "n": 18,
+      "before": 1.0,
+      "after": 0.9444444444444444
+    },
+    "WHAT1": {
+      "n": 16,
+      "before": 0.9375,
+      "after": 0.9375
+    },
+    "WHY": {
+      "n": 18,
+      "before": 0.7777777777777778,
+      "after": 0.8888888888888888
+    },
+    "WORK": {
+      "n": 18,
+      "before": 0.5555555555555556,
+      "after": 0.6111111111111112
+    },
+    "EAT1": {
+      "n": 21,
+      "before": 0.6666666666666666,
+      "after": 1.0
+    },
+    "FINE1": {
+      "n": 20,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "UNDERSTAND": {
+      "n": 18,
+      "before": 0.7777777777777778,
+      "after": 0.5
+    },
+    "WANT1": {
+      "n": 16,
+      "before": 0.9375,
+      "after": 1.0
+    },
+    "MORNING": {
+      "n": 18,
+      "before": 0.8888888888888888,
+      "after": 0.8888888888888888
+    },
+    "NIGHT1": {
+      "n": 22,
+      "before": 0.9090909090909091,
+      "after": 0.9090909090909091
+    },
+    "BROTHER": {
+      "n": 16,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "FRIENDLY": {
+      "n": 18,
+      "before": 0.9444444444444444,
+      "after": 0.8888888888888888
+    },
+    "FINISH": {
+      "n": 17,
+      "before": 0.6470588235294118,
+      "after": 0.7647058823529411
+    },
+    "MAYBE": {
+      "n": 18,
+      "before": 0.7777777777777778,
+      "after": 0.8888888888888888
+    },
+    "IMPORTANT": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "HEALTH": {
+      "n": 17,
+      "before": 0.8235294117647058,
+      "after": 1.0
+    },
+    "DINNER1": {
+      "n": 19,
+      "before": 0.7368421052631579,
+      "after": 0.7368421052631579
+    },
+    "AFTER": {
+      "n": 17,
+      "before": 0.7647058823529411,
+      "after": 0.8235294117647058
+    },
+    "BECAUSE": {
+      "n": 18,
+      "before": 0.7222222222222222,
+      "after": 0.7222222222222222
+    },
+    "BASKETBALL1": {
+      "n": 25,
+      "before": 0.76,
+      "after": 0.76
+    },
+    "DOG1": {
+      "n": 21,
+      "before": 0.9047619047619048,
+      "after": 1.0
+    },
+    "WHATFOR1": {
+      "n": 23,
+      "before": 0.6086956521739131,
+      "after": 0.9565217391304348
+    },
+    "BELT1": {
+      "n": 21,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "HOSPITAL1": {
+      "n": 21,
+      "before": 0.9523809523809523,
+      "after": 0.9523809523809523
+    },
+    "MOVIE1": {
+      "n": 21,
+      "before": 0.9047619047619048,
+      "after": 0.8571428571428571
+    },
+    "FOREIGNER1": {
+      "n": 21,
+      "before": 0.9523809523809523,
+      "after": 0.9523809523809523
+    },
+    "BELIEVE1": {
+      "n": 22,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "BEE1": {
+      "n": 20,
+      "before": 0.9,
+      "after": 0.9
+    },
+    "CHRISTMAS1": {
+      "n": 20,
+      "before": 0.9,
+      "after": 0.9
+    },
+    "SHAVE1": {
+      "n": 20,
+      "before": 0.7,
+      "after": 0.7
+    },
+    "PATIENT2": {
+      "n": 20,
+      "before": 0.95,
+      "after": 0.9
+    },
+    "ELEVATOR1": {
+      "n": 20,
+      "before": 0.95,
+      "after": 0.95
+    },
+    "LETTUCE1": {
+      "n": 21,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "RESEARCH1": {
+      "n": 21,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "TYPE1": {
+      "n": 21,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "RECENT1": {
+      "n": 21,
+      "before": 1.0,
+      "after": 0.8571428571428571
+    },
+    "CANCEL1": {
+      "n": 22,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "CLOUD1": {
+      "n": 22,
+      "before": 0.9090909090909091,
+      "after": 1.0
+    },
+    "DEAF1": {
+      "n": 19,
+      "before": 0.8947368421052632,
+      "after": 0.8421052631578947
+    },
+    "MECHANIC1": {
+      "n": 19,
+      "before": 0.8947368421052632,
+      "after": 0.8947368421052632
+    },
+    "PARTY1": {
+      "n": 19,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "ROCKINGCHAIR1": {
+      "n": 19,
+      "before": 0.8947368421052632,
+      "after": 0.9473684210526315
+    },
+    "DRAG1": {
+      "n": 20,
+      "before": 0.8,
+      "after": 0.85
+    },
+    "MICROSCOPE1": {
+      "n": 20,
+      "before": 0.95,
+      "after": 0.95
+    },
+    "DOWNSIZE1": {
+      "n": 20,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "DARK1": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "BITE1": {
+      "n": 18,
+      "before": 0.8333333333333334,
+      "after": 0.7777777777777778
+    },
+    "DEMAND1": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "BREAKFAST1": {
+      "n": 18,
+      "before": 0.5555555555555556,
+      "after": 0.5555555555555556
+    }
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "train_mean_reward": 0.7452,
+      "rl_loss": -0.2836,
+      "ce_loss": 0.4123,
+      "reward_ema": 0.7524,
+      "val_top1": 0.625,
+      "val_top5": 0.8967,
+      "test_top1": 0.8848,
+      "test_top5": 0.9887,
+      "sec": 15.3
+    },
+    {
+      "epoch": 2,
+      "train_mean_reward": 0.7464,
+      "rl_loss": -0.3865,
+      "ce_loss": 0.4048,
+      "reward_ema": 0.7363,
+      "val_top1": 0.6141,
+      "val_top5": 0.8859,
+      "test_top1": 0.8827,
+      "test_top5": 0.9866,
+      "sec": 12.0
+    },
+    {
+      "epoch": 3,
+      "train_mean_reward": 0.7554,
+      "rl_loss": -0.3841,
+      "ce_loss": 0.3982,
+      "reward_ema": 0.7432,
+      "val_top1": 0.6087,
+      "val_top5": 0.8859,
+      "test_top1": 0.8848,
+      "test_top5": 0.9877,
+      "sec": 11.2
+    },
+    {
+      "epoch": 4,
+      "train_mean_reward": 0.747,
+      "rl_loss": -0.4149,
+      "ce_loss": 0.4049,
+      "reward_ema": 0.7416,
+      "val_top1": 0.6087,
+      "val_top5": 0.8804,
+      "test_top1": 0.8837,
+      "test_top5": 0.9887,
+      "sec": 11.4
+    },
+    {
+      "epoch": 5,
+      "train_mean_reward": 0.7585,
+      "rl_loss": -0.3692,
+      "ce_loss": 0.3903,
+      "reward_ema": 0.7694,
+      "val_top1": 0.6033,
+      "val_top5": 0.8913,
+      "test_top1": 0.8807,
+      "test_top5": 0.9887,
+      "sec": 10.9
+    },
+    {
+      "epoch": 6,
+      "train_mean_reward": 0.7506,
+      "rl_loss": -0.3829,
+      "ce_loss": 0.3873,
+      "reward_ema": 0.7579,
+      "val_top1": 0.625,
+      "val_top5": 0.8804,
+      "test_top1": 0.8909,
+      "test_top5": 0.9856,
+      "sec": 11.0
+    },
+    {
+      "epoch": 7,
+      "train_mean_reward": 0.7566,
+      "rl_loss": -0.3839,
+      "ce_loss": 0.3853,
+      "reward_ema": 0.7403,
+      "val_top1": 0.6196,
+      "val_top5": 0.8804,
+      "test_top1": 0.8858,
+      "test_top5": 0.9877,
+      "sec": 10.2
+    },
+    {
+      "epoch": 8,
+      "train_mean_reward": 0.7627,
+      "rl_loss": -0.3697,
+      "ce_loss": 0.3793,
+      "reward_ema": 0.7675,
+      "val_top1": 0.6196,
+      "val_top5": 0.8859,
+      "test_top1": 0.8827,
+      "test_top5": 0.9866,
+      "sec": 11.8
+    },
+    {
+      "epoch": 9,
+      "train_mean_reward": 0.7772,
+      "rl_loss": -0.3622,
+      "ce_loss": 0.3668,
+      "reward_ema": 0.7635,
+      "val_top1": 0.6141,
+      "val_top5": 0.8696,
+      "test_top1": 0.892,
+      "test_top5": 0.9877,
+      "sec": 11.0
+    },
+    {
+      "epoch": 10,
+      "train_mean_reward": 0.7917,
+      "rl_loss": -0.3149,
+      "ce_loss": 0.3694,
+      "reward_ema": 0.8017,
+      "val_top1": 0.6304,
+      "val_top5": 0.875,
+      "test_top1": 0.8971,
+      "test_top5": 0.9866,
+      "sec": 11.9
+    },
+    {
+      "epoch": 11,
+      "train_mean_reward": 0.7796,
+      "rl_loss": -0.3704,
+      "ce_loss": 0.3703,
+      "reward_ema": 0.7934,
+      "val_top1": 0.6087,
+      "val_top5": 0.8804,
+      "test_top1": 0.8909,
+      "test_top5": 0.9866,
+      "sec": 12.2
+    },
+    {
+      "epoch": 12,
+      "train_mean_reward": 0.7754,
+      "rl_loss": -0.3733,
+      "ce_loss": 0.3694,
+      "reward_ema": 0.7702,
+      "val_top1": 0.625,
+      "val_top5": 0.8804,
+      "test_top1": 0.8858,
+      "test_top5": 0.9866,
+      "sec": 11.9
+    },
+    {
+      "epoch": 13,
+      "train_mean_reward": 0.776,
+      "rl_loss": -0.3565,
+      "ce_loss": 0.3604,
+      "reward_ema": 0.7666,
+      "val_top1": 0.6087,
+      "val_top5": 0.8913,
+      "test_top1": 0.892,
+      "test_top5": 0.9866,
+      "sec": 11.9
+    },
+    {
+      "epoch": 14,
+      "train_mean_reward": 0.7772,
+      "rl_loss": -0.3483,
+      "ce_loss": 0.361,
+      "reward_ema": 0.7941,
+      "val_top1": 0.6196,
+      "val_top5": 0.8804,
+      "test_top1": 0.892,
+      "test_top5": 0.9877,
+      "sec": 11.3
+    },
+    {
+      "epoch": 15,
+      "train_mean_reward": 0.7748,
+      "rl_loss": -0.3751,
+      "ce_loss": 0.3707,
+      "reward_ema": 0.7731,
+      "val_top1": 0.6087,
+      "val_top5": 0.8859,
+      "test_top1": 0.8992,
+      "test_top5": 0.9866,
+      "sec": 11.0
+    },
+    {
+      "epoch": 16,
+      "train_mean_reward": 0.7754,
+      "rl_loss": -0.3692,
+      "ce_loss": 0.3503,
+      "reward_ema": 0.7672,
+      "val_top1": 0.625,
+      "val_top5": 0.8859,
+      "test_top1": 0.8951,
+      "test_top5": 0.9877,
+      "sec": 11.9
+    },
+    {
+      "epoch": 17,
+      "train_mean_reward": 0.7808,
+      "rl_loss": -0.3373,
+      "ce_loss": 0.3503,
+      "reward_ema": 0.7918,
+      "val_top1": 0.6196,
+      "val_top5": 0.875,
+      "test_top1": 0.9002,
+      "test_top5": 0.9856,
+      "sec": 10.9
+    },
+    {
+      "epoch": 18,
+      "train_mean_reward": 0.7814,
+      "rl_loss": -0.3661,
+      "ce_loss": 0.3474,
+      "reward_ema": 0.7709,
+      "val_top1": 0.6087,
+      "val_top5": 0.8804,
+      "test_top1": 0.894,
+      "test_top5": 0.9877,
+      "sec": 10.8
+    },
+    {
+      "epoch": 19,
+      "train_mean_reward": 0.7802,
+      "rl_loss": -0.3752,
+      "ce_loss": 0.3396,
+      "reward_ema": 0.7386,
+      "val_top1": 0.6141,
+      "val_top5": 0.8859,
+      "test_top1": 0.8981,
+      "test_top5": 0.9877,
+      "sec": 11.3
+    },
+    {
+      "epoch": 20,
+      "train_mean_reward": 0.7893,
+      "rl_loss": -0.3716,
+      "ce_loss": 0.3453,
+      "reward_ema": 0.7932,
+      "val_top1": 0.6087,
+      "val_top5": 0.8913,
+      "test_top1": 0.894,
+      "test_top5": 0.9887,
+      "sec": 10.3
+    },
+    {
+      "epoch": 21,
+      "train_mean_reward": 0.779,
+      "rl_loss": -0.3728,
+      "ce_loss": 0.3388,
+      "reward_ema": 0.7819,
+      "val_top1": 0.625,
+      "val_top5": 0.875,
+      "test_top1": 0.892,
+      "test_top5": 0.9856,
+      "sec": 11.3
+    },
+    {
+      "epoch": 22,
+      "train_mean_reward": 0.7832,
+      "rl_loss": -0.3743,
+      "ce_loss": 0.3346,
+      "reward_ema": 0.7544,
+      "val_top1": 0.6304,
+      "val_top5": 0.875,
+      "test_top1": 0.8971,
+      "test_top5": 0.9856,
+      "sec": 11.1
+    },
+    {
+      "epoch": 23,
+      "train_mean_reward": 0.7917,
+      "rl_loss": -0.3627,
+      "ce_loss": 0.3317,
+      "reward_ema": 0.7897,
+      "val_top1": 0.625,
+      "val_top5": 0.875,
+      "test_top1": 0.9002,
+      "test_top5": 0.9866,
+      "sec": 11.2
+    },
+    {
+      "epoch": 24,
+      "train_mean_reward": 0.7977,
+      "rl_loss": -0.3529,
+      "ce_loss": 0.3413,
+      "reward_ema": 0.8169,
+      "val_top1": 0.6196,
+      "val_top5": 0.8641,
+      "test_top1": 0.8992,
+      "test_top5": 0.9846,
+      "sec": 11.4
+    },
+    {
+      "epoch": 25,
+      "train_mean_reward": 0.7935,
+      "rl_loss": -0.3632,
+      "ce_loss": 0.3407,
+      "reward_ema": 0.7853,
+      "val_top1": 0.6196,
+      "val_top5": 0.8859,
+      "test_top1": 0.9012,
+      "test_top5": 0.9866,
+      "sec": 11.7
+    }
+  ],
+  "checkpoint": "/workspace/asl-citizen-bilstm/artifacts/asl_citizen_bilstm50_rl.pt",
+  "onnx": "/workspace/asl-citizen-bilstm/artifacts/asl_citizen_bilstm50_rl.onnx",
+  "source_checkpoint": "/workspace/asl-citizen-bilstm/artifacts/asl_citizen_bilstm50.pt",
+  "label_map": "artifacts/label_map50.json",
+  "note": "version 2.1.2, vocab 50 (ASL Citizen), no further expand; SignSpeak untouched"
+}

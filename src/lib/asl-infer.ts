@@ -1,4 +1,5 @@
 import {
+  DEDICATED_MODEL_DIRNAME,
   DEDICATED_ONNX_FILENAME,
   FEAT_DIM,
   TARGET_LEN,
@@ -20,7 +21,8 @@ export type DedicatedPrediction = {
 
 const MODEL_PATH = path.join(
   process.cwd(),
-  "models/asl-citizen-bilstm20",
+  "models",
+  DEDICATED_MODEL_DIRNAME,
   DEDICATED_ONNX_FILENAME,
 );
 
