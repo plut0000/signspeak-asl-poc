@@ -36,22 +36,30 @@ assert(MAX_FRAMES === 80, "isolated-sign frame budget should be 80");
 assert(THRESHOLD === 0.55, "default dedicated threshold should be 0.55");
 assert(MARGIN === 0.15, "default dedicated margin should be 0.15");
 assert(MAX_ENTROPY === 0.75, "default max normalized entropy should be 0.75");
-assert(glossCount === 100, `expected 100 dedicated glosses, got ${glossCount}`);
+assert(glossCount === 200, `expected 200 dedicated glosses, got ${glossCount}`);
 assert(
-  citizen.includes('DEDICATED_MODEL_DIRNAME = "asl-citizen-bilstm100"'),
-  "dedicated model dir should be the 100-class folder",
+  citizen.includes('DEDICATED_MODEL_DIRNAME = "asl-citizen-bilstm200"'),
+  "dedicated model dir should be the 200-class folder",
 );
 assert(
-  citizen.includes("asl_citizen_bilstm100_rl.onnx"),
-  "dedicated ONNX should be the 100-class RL graph",
+  citizen.includes("asl_citizen_bilstm200_rl.onnx"),
+  "dedicated ONNX should be the 200-class RL graph",
 );
 assert(
   infer.includes("DEDICATED_MODEL_DIRNAME"),
   "inference should load from the versioned dedicated model dir",
 );
 assert(
-  patchNotes.includes('DEMO_VERSION = "2.1.3.1"'),
-  "demo version should be 2.1.3.1",
+  patchNotes.includes('DEMO_VERSION = "3.0"'),
+  "demo version should be 3.0",
+);
+assert(
+  citizen.includes('LUNCH1') && citizen.includes('COCACOLA') && citizen.includes('TAKEOFF1'),
+  "200-class vocab should include LUNCH1, COCACOLA, TAKEOFF1",
+);
+assert(
+  citizen.includes('Coca-Cola') && citizen.includes("Take off"),
+  "friendly gloss map should include Coca-Cola and Take off",
 );
 
 function assessBudget({ frames, durationMs }) {

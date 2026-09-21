@@ -1,5 +1,42 @@
 # SignSpeak patch notes
 
+## Version 3.0 — 200-class RL ASL Citizen BiLSTM
+
+The dedicated isolated-sign classifier now ships the **full 200-class** ASL
+Citizen vocabulary with RL-fine-tuned BiLSTM weights. A 150-class fallback
+was **not** needed.
+
+### Accuracy (held-out test)
+
+| | Top-1 | Top-5 |
+| --- | --- | --- |
+| Supervised CE | 87.25% | 98.14% |
+| **v3.0 (RL)** | **89.70%** | 98.20% |
+
+About **+2.5 points** top-1 after REINFORCE + a light cross-entropy mix.
+Top-5 stays around **98%**.
+
+### What did not change
+
+- Isolated-sign only — not continuous signing
+- Same pipeline: landmarks → ONNX BiLSTM → Gemini English cleanup
+- **v2.1.1 long-clip routing stays:** clips longer than ~5 seconds, or
+  landmark sequences longer than a typical isolated sign (~80 frames),
+  **skip dedicated inference** and use Gemini full-video
+- Uncertain BiLSTM predictions (confidence below 55%, top-1 vs top-2
+  margin below 0.15, or normalized entropy above 0.75) also fall back to
+  Gemini video
+- **v2.1.3.1 Gemini visual-only stays:** mic off, audio stripped, lyric-first
+  silent-clip prompts, no gang-sign or screen-recording lectures, flash-lite
+  long-clip path
+
+### Production weights
+
+`/api/interpret` loads `models/asl-citizen-bilstm200/asl_citizen_bilstm200_rl.onnx`
+plus the sidecar `asl_citizen_bilstm200_rl.onnx.data`. The `.pt` checkpoint is
+kept alongside for reference. Metrics: `rl_report_v3.json` and
+`v3_summary.json`.
+
 ## Version 2.1.3.1 — Visual-only song translation (faster, quieter)
 
 Long clips still go to **Gemini video**. This patch changes *how* that path

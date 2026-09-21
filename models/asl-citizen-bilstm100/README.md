@@ -7,8 +7,12 @@ processed keypoints (`SharoonArshad/asl-citizen-processed-200`).
 **License: CC BY-NC-SA 4.0** — do not use this model or the derived keypoints
 commercially.
 
-**Production default is v2.1.3 (RL, 100-class).** `/api/interpret` loads
-`asl_citizen_bilstm100_rl.onnx` plus the sidecar `.onnx.data` file.
+**No longer the production default.** Demo v3.0 loads the 200-class RL graph
+in `../asl-citizen-bilstm200/`. These 100-class v2.1.3 weights are kept for
+reference.
+
+Previous production default was v2.1.3 (RL, 100-class). `/api/interpret` no
+longer loads `asl_citizen_bilstm100_rl.onnx`.
 
 | Version | Split | Top-1 | Top-5 |
 | --- | --- | --- | --- |
@@ -25,7 +29,7 @@ Citizen classes (100 total). See `rl_report_v213.json` and
 
 | File | Role |
 | --- | --- |
-| `asl_citizen_bilstm100_rl.onnx` + `.onnx.data` | **Production** CPU graph for Vercel / `onnxruntime-node` |
+| `asl_citizen_bilstm100_rl.onnx` + `.onnx.data` | Previous production CPU graph (v2.1.3, 100-class) |
 | `asl_citizen_bilstm100_rl.pt` | RL-fine-tuned PyTorch checkpoint (reference) |
 | `rl_report_v213.json` | v2.1.3 metrics (before/after, per-class) |
 | `label_map100.json` | id ↔ gloss (100 classes) |

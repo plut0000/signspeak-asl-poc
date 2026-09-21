@@ -1,0 +1,51 @@
+{
+  "dataset_name": "ASL Citizen",
+  "dataset_source": "Kaggle ASL Citizen keypoints-200",
+  "input_root": "/kaggle/input/datasets/nguyenchitinh/asl-citizen/keypoints-200",
+  "original_format": "(T, 75, 4)",
+  "used_format": "(T, 75, 3)",
+  "dropped_feature": "4th value, likely visibility/confidence",
+  "landmark_structure": {
+    "pose": "33 landmarks",
+    "left_hand": "21 landmarks",
+    "right_hand": "21 landmarks",
+    "total": 75
+  },
+  "normalization": "shoulder center subtraction and shoulder width scaling",
+  "target_len": 200,
+  "flattened_position_dim": 225,
+  "use_velocity": true,
+  "final_feature_dim": 450,
+  "save_dtype": "float16",
+  "shard_size": 256,
+  "min_samples_per_class": 1,
+  "val_ratio_from_train_folder": 0.1,
+  "seed": 42,
+  "splits": {
+    "train": {
+      "split": "train",
+      "samples": 6090,
+      "bad_files": 0,
+      "shards": 24,
+      "manifest": "/kaggle/working/asl_citizen_processed_200/metadata/train_manifest.csv",
+      "bad_file_report": null
+    },
+    "val": {
+      "split": "val",
+      "samples": 654,
+      "bad_files": 0,
+      "shards": 3,
+      "manifest": "/kaggle/working/asl_citizen_processed_200/metadata/val_manifest.csv",
+      "bad_file_report": null
+    },
+    "test": {
+      "split": "test",
+      "samples": 3552,
+      "bad_files": 0,
+      "shards": 14,
+      "manifest": "/kaggle/working/asl_citizen_processed_200/metadata/test_manifest.csv",
+      "bad_file_report": null
+    }
+  },
+  "num_classes": 200
+}
