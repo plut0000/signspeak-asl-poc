@@ -1,0 +1,27 @@
+{
+  "before_test_top1": 0.900619,
+  "after_test_top1": 0.902872,
+  "before_test_top5": 0.982264,
+  "after_test_top5": 0.981419,
+  "before_val_top1": 0.648318,
+  "after_val_top1": 0.646789,
+  "delta_test_top1": 0.002252,
+  "improved": true,
+  "promoted_to_main_rl": true,
+  "epochs_ran": 16,
+  "best_epoch": 1,
+  "lr": 4e-05,
+  "ce_weight": 0.25,
+  "max_epochs": 50,
+  "early_stop_patience": 15,
+  "oversample_factor": 4.5,
+  "paths": {
+    "ckpt_in": "/workspace/asl-citizen-bilstm/artifacts/asl_citizen_bilstm200_rl.pt",
+    "ckpt_out": "/workspace/asl-citizen-bilstm/artifacts/asl_citizen_bilstm200_rl4.pt",
+    "ckpt_backup": "/workspace/asl-citizen-bilstm/artifacts/asl_citizen_bilstm200_rl_before_more3.pt",
+    "onnx": "/workspace/asl-citizen-bilstm/artifacts/asl_citizen_bilstm200_rl4.onnx",
+    "report": "/workspace/asl-citizen-bilstm/artifacts/rl_report_v3_more3.json",
+    "log": "/workspace/asl-citizen-bilstm/run_v3_more3_rl.log"
+  },
+  "updated_at": "2026-09-21T20:48:21-04:00"
+}

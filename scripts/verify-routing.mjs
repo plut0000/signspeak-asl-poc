@@ -50,8 +50,16 @@ assert(
   "inference should load from the versioned dedicated model dir",
 );
 assert(
-  patchNotes.includes('DEMO_VERSION = "3.0"'),
-  "demo version should be 3.0",
+  patchNotes.includes('DEMO_VERSION = "3.0.1"'),
+  "demo version should be 3.0.1",
+);
+assert(
+  citizen.includes('DEDICATED_MODEL_VERSION = "3.0.1"'),
+  "dedicated model version should be 3.0.1",
+);
+assert(
+  citizen.includes("Model v3.0.1 (RL) 200-class"),
+  "dedicated model label should name v3.0.1 RL 200-class",
 );
 assert(
   citizen.includes('LUNCH1') && citizen.includes('COCACOLA') && citizen.includes('TAKEOFF1'),

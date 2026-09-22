@@ -1,0 +1,1384 @@
+{
+  "version": "3.0-more3",
+  "vocab_classes": 200,
+  "method": "REINFORCE continue from RL v3-more: softmax Categorical; sample action; reward=+1 if action==label else 0; loss = -log_prob(action)*(reward - EMA_baseline) + 0.25*CE; patient lr=4e-05; stronger tiered weak-class oversample x4.5; patience=15; no freeze.",
+  "freeze": "none",
+  "lr": 4e-05,
+  "ce_mix_used": true,
+  "ce_weight": 0.25,
+  "max_epochs": 50,
+  "early_stop_patience": 15,
+  "epochs_ran": 16,
+  "best_epoch": 1,
+  "train_size": 6090,
+  "val_size": 654,
+  "test_size": 3552,
+  "batch_size": 32,
+  "device": "cpu",
+  "oversample_factor": 4.5,
+  "oversample_weak": [
+    {
+      "gloss": "TWO",
+      "id": 184,
+      "n": 29,
+      "weight": 5.0
+    },
+    {
+      "gloss": "SUSPECT",
+      "id": 168,
+      "n": 29,
+      "weight": 5.0
+    },
+    {
+      "gloss": "AND",
+      "id": 59,
+      "n": 29,
+      "weight": 5.0
+    },
+    {
+      "gloss": "UNDERSTAND",
+      "id": 187,
+      "n": 29,
+      "weight": 5.0
+    },
+    {
+      "gloss": "WHATFOR1",
+      "id": 2,
+      "n": 39,
+      "weight": 5.0
+    },
+    {
+      "gloss": "HAMMER",
+      "id": 105,
+      "n": 29,
+      "weight": 5.0
+    },
+    {
+      "gloss": "DINNER1",
+      "id": 48,
+      "n": 33,
+      "weight": 5.0
+    },
+    {
+      "gloss": "LATER",
+      "id": 149,
+      "n": 29,
+      "weight": 5.0
+    },
+    {
+      "gloss": "FARM",
+      "id": 132,
+      "n": 29,
+      "weight": 5.0
+    },
+    {
+      "gloss": "DOG1",
+      "id": 0,
+      "n": 41,
+      "weight": 5.0
+    },
+    {
+      "gloss": "BREAKFAST1",
+      "id": 19,
+      "n": 35,
+      "weight": 4.5
+    },
+    {
+      "gloss": "FAULT",
+      "id": 122,
+      "n": 29,
+      "weight": 4.5
+    },
+    {
+      "gloss": "RIGHT2",
+      "id": 164,
+      "n": 29,
+      "weight": 4.5
+    },
+    {
+      "gloss": "THEY1",
+      "id": 52,
+      "n": 32,
+      "weight": 4.5
+    },
+    {
+      "gloss": "GREEN",
+      "id": 109,
+      "n": 29,
+      "weight": 4.5
+    },
+    {
+      "gloss": "BASEBALLCAP",
+      "id": 67,
+      "n": 29,
+      "weight": 4.5
+    },
+    {
+      "gloss": "LUNCH1",
+      "id": 32,
+      "n": 34,
+      "weight": 4.5
+    },
+    {
+      "gloss": "MEDITATE3",
+      "id": 143,
+      "n": 29,
+      "weight": 4.5
+    },
+    {
+      "gloss": "THIRD1",
+      "id": 40,
+      "n": 33,
+      "weight": 4.5
+    },
+    {
+      "gloss": "THINGS",
+      "id": 178,
+      "n": 29,
+      "weight": 4.5
+    },
+    {
+      "gloss": "CHANNEL",
+      "id": 88,
+      "n": 29,
+      "weight": 4.5
+    },
+    {
+      "gloss": "GULLIBLE",
+      "id": 106,
+      "n": 29,
+      "weight": 4.5
+    },
+    {
+      "gloss": "FEW",
+      "id": 103,
+      "n": 29,
+      "weight": 4.5
+    },
+    {
+      "gloss": "WINK",
+      "id": 194,
+      "n": 29,
+      "weight": 4.5
+    }
+  ],
+  "reward": "+1 if sampled action == label else 0",
+  "baseline": "EMA of batch mean reward (momentum=0.9)",
+  "before": {
+    "val_top1": 0.6483,
+    "val_top5": 0.8685,
+    "test_top1": 0.9006,
+    "test_top5": 0.9823
+  },
+  "after": {
+    "val_top1": 0.6468,
+    "val_top5": 0.8654,
+    "test_top1": 0.9029,
+    "test_top5": 0.9814
+  },
+  "delta_test_top1": 0.0023,
+  "improved": true,
+  "promoted_to_main_rl": true,
+  "per_class_test_acc_before_vs_after": {
+    "DOG1": {
+      "n": 21,
+      "before": 0.7142857142857143,
+      "after": 0.7619047619047619
+    },
+    "BASKETBALL1": {
+      "n": 25,
+      "before": 0.8,
+      "after": 0.8
+    },
+    "WHATFOR1": {
+      "n": 23,
+      "before": 0.6521739130434783,
+      "after": 0.6086956521739131
+    },
+    "BELT1": {
+      "n": 21,
+      "before": 0.9523809523809523,
+      "after": 0.9523809523809523
+    },
+    "BEE1": {
+      "n": 20,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "CHRISTMAS1": {
+      "n": 20,
+      "before": 0.9,
+      "after": 0.9
+    },
+    "DARK1": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "BITE1": {
+      "n": 18,
+      "before": 0.8333333333333334,
+      "after": 0.8888888888888888
+    },
+    "DEMAND1": {
+      "n": 18,
+      "before": 0.8888888888888888,
+      "after": 0.8888888888888888
+    },
+    "DEAF1": {
+      "n": 19,
+      "before": 0.9473684210526315,
+      "after": 0.9473684210526315
+    },
+    "EAT1": {
+      "n": 21,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "MECHANIC1": {
+      "n": 19,
+      "before": 0.9473684210526315,
+      "after": 0.9473684210526315
+    },
+    "SHAVE1": {
+      "n": 20,
+      "before": 0.95,
+      "after": 1.0
+    },
+    "PARTY1": {
+      "n": 19,
+      "before": 0.9473684210526315,
+      "after": 0.9473684210526315
+    },
+    "ROCKINGCHAIR1": {
+      "n": 19,
+      "before": 0.8421052631578947,
+      "after": 0.8947368421052632
+    },
+    "PATIENT2": {
+      "n": 20,
+      "before": 0.9,
+      "after": 0.9
+    },
+    "HOSPITAL1": {
+      "n": 21,
+      "before": 0.9047619047619048,
+      "after": 0.9047619047619048
+    },
+    "NIGHT1": {
+      "n": 22,
+      "before": 0.9090909090909091,
+      "after": 0.9090909090909091
+    },
+    "MOVIE1": {
+      "n": 21,
+      "before": 0.9047619047619048,
+      "after": 0.9047619047619048
+    },
+    "BREAKFAST1": {
+      "n": 18,
+      "before": 0.7222222222222222,
+      "after": 0.7222222222222222
+    },
+    "FINE1": {
+      "n": 20,
+      "before": 0.8,
+      "after": 0.8
+    },
+    "FOREIGNER1": {
+      "n": 21,
+      "before": 0.9523809523809523,
+      "after": 0.9523809523809523
+    },
+    "ELEVATOR1": {
+      "n": 20,
+      "before": 0.9,
+      "after": 0.9
+    },
+    "DRAG1": {
+      "n": 20,
+      "before": 0.95,
+      "after": 0.9
+    },
+    "EDIT1": {
+      "n": 19,
+      "before": 0.8947368421052632,
+      "after": 0.8947368421052632
+    },
+    "HURDLE-TRIP1": {
+      "n": 16,
+      "before": 0.9375,
+      "after": 0.9375
+    },
+    "LETTUCE1": {
+      "n": 21,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "MICROSCOPE1": {
+      "n": 20,
+      "before": 0.95,
+      "after": 0.95
+    },
+    "DOWNSIZE1": {
+      "n": 20,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "BELIEVE1": {
+      "n": 22,
+      "before": 1.0,
+      "after": 0.9545454545454546
+    },
+    "AXE1": {
+      "n": 19,
+      "before": 0.9473684210526315,
+      "after": 0.9473684210526315
+    },
+    "DECIDE1": {
+      "n": 18,
+      "before": 0.8888888888888888,
+      "after": 0.8888888888888888
+    },
+    "LUNCH1": {
+      "n": 19,
+      "before": 0.7368421052631579,
+      "after": 0.7368421052631579
+    },
+    "RESEARCH1": {
+      "n": 21,
+      "before": 0.9047619047619048,
+      "after": 0.9047619047619048
+    },
+    "TYPE1": {
+      "n": 21,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "NOON1": {
+      "n": 19,
+      "before": 0.8947368421052632,
+      "after": 0.8947368421052632
+    },
+    "RECENT1": {
+      "n": 21,
+      "before": 0.8571428571428571,
+      "after": 0.8095238095238095
+    },
+    "RIVER1": {
+      "n": 19,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "CANCEL1": {
+      "n": 22,
+      "before": 0.9545454545454546,
+      "after": 0.8636363636363636
+    },
+    "CANCER1": {
+      "n": 19,
+      "before": 0.7894736842105263,
+      "after": 0.7368421052631579
+    },
+    "THIRD1": {
+      "n": 20,
+      "before": 0.75,
+      "after": 0.75
+    },
+    "TWINS1": {
+      "n": 19,
+      "before": 0.8421052631578947,
+      "after": 0.8947368421052632
+    },
+    "CALENDAR1": {
+      "n": 20,
+      "before": 0.95,
+      "after": 0.95
+    },
+    "BACKPACK1": {
+      "n": 18,
+      "before": 0.9444444444444444,
+      "after": 0.9444444444444444
+    },
+    "HALLOWEEN1": {
+      "n": 18,
+      "before": 0.8333333333333334,
+      "after": 0.8888888888888888
+    },
+    "LOCK1": {
+      "n": 19,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "GUESS1": {
+      "n": 19,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "SPECIAL1": {
+      "n": 20,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "DINNER1": {
+      "n": 19,
+      "before": 0.6842105263157895,
+      "after": 0.6842105263157895
+    },
+    "CONFUSED1": {
+      "n": 19,
+      "before": 0.9473684210526315,
+      "after": 0.9473684210526315
+    },
+    "CLOUD1": {
+      "n": 22,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "TAKEOFF1": {
+      "n": 21,
+      "before": 0.9047619047619048,
+      "after": 0.9047619047619048
+    },
+    "THEY1": {
+      "n": 18,
+      "before": 0.7222222222222222,
+      "after": 0.7777777777777778
+    },
+    "DEVELOP1": {
+      "n": 17,
+      "before": 0.9411764705882353,
+      "after": 0.9411764705882353
+    },
+    "CHAIN": {
+      "n": 16,
+      "before": 0.9375,
+      "after": 0.9375
+    },
+    "CATEGORY": {
+      "n": 16,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "AUTISM1": {
+      "n": 15,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "APPLE": {
+      "n": 15,
+      "before": 0.9333333333333333,
+      "after": 0.9333333333333333
+    },
+    "APPEAR": {
+      "n": 18,
+      "before": 0.9444444444444444,
+      "after": 0.9444444444444444
+    },
+    "AND": {
+      "n": 17,
+      "before": 0.5882352941176471,
+      "after": 0.5882352941176471
+    },
+    "ALPHABET": {
+      "n": 17,
+      "before": 0.7647058823529411,
+      "after": 0.7647058823529411
+    },
+    "ALARM": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "AFTER": {
+      "n": 17,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "ACTION": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "BOWL": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "BOTTLE": {
+      "n": 16,
+      "before": 0.875,
+      "after": 0.875
+    },
+    "BORROW": {
+      "n": 17,
+      "before": 0.8823529411764706,
+      "after": 0.8823529411764706
+    },
+    "BASEBALLCAP": {
+      "n": 15,
+      "before": 0.7333333333333333,
+      "after": 0.8666666666666667
+    },
+    "BECAUSE": {
+      "n": 18,
+      "before": 1.0,
+      "after": 0.9444444444444444
+    },
+    "BASKET1": {
+      "n": 16,
+      "before": 0.8125,
+      "after": 0.8125
+    },
+    "BASEMENT": {
+      "n": 17,
+      "before": 0.9411764705882353,
+      "after": 0.9411764705882353
+    },
+    "BACKOUT": {
+      "n": 16,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "EACH": {
+      "n": 16,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "DROWN5": {
+      "n": 16,
+      "before": 0.9375,
+      "after": 0.9375
+    },
+    "DODO": {
+      "n": 16,
+      "before": 0.9375,
+      "after": 0.9375
+    },
+    "DISAPPEAR": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "DANCE": {
+      "n": 17,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "DEPENDON": {
+      "n": 17,
+      "before": 0.9411764705882353,
+      "after": 0.9411764705882353
+    },
+    "CHASE": {
+      "n": 16,
+      "before": 0.9375,
+      "after": 1.0
+    },
+    "CHARACTER": {
+      "n": 17,
+      "before": 0.8235294117647058,
+      "after": 0.8235294117647058
+    },
+    "CLEAR": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "CITY1": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "COCACOLA": {
+      "n": 18,
+      "before": 0.8333333333333334,
+      "after": 0.7777777777777778
+    },
+    "CLOSE": {
+      "n": 15,
+      "before": 0.9333333333333333,
+      "after": 0.9333333333333333
+    },
+    "CONCEPT": {
+      "n": 18,
+      "before": 0.9444444444444444,
+      "after": 0.8888888888888888
+    },
+    "COOKIE": {
+      "n": 17,
+      "before": 0.9411764705882353,
+      "after": 0.9411764705882353
+    },
+    "CORN2": {
+      "n": 18,
+      "before": 0.9444444444444444,
+      "after": 0.9444444444444444
+    },
+    "COVERUP": {
+      "n": 18,
+      "before": 0.8888888888888888,
+      "after": 0.8888888888888888
+    },
+    "CHANNEL": {
+      "n": 18,
+      "before": 0.7777777777777778,
+      "after": 0.7222222222222222
+    },
+    "CHEEK": {
+      "n": 15,
+      "before": 0.8,
+      "after": 0.8
+    },
+    "CHOCOLATE": {
+      "n": 18,
+      "before": 0.7777777777777778,
+      "after": 0.7777777777777778
+    },
+    "BEHAVIOR": {
+      "n": 16,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "BRAVE": {
+      "n": 18,
+      "before": 0.7777777777777778,
+      "after": 0.8333333333333334
+    },
+    "BROTHER": {
+      "n": 16,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "BRAIDS": {
+      "n": 16,
+      "before": 0.875,
+      "after": 0.875
+    },
+    "BOXING": {
+      "n": 16,
+      "before": 0.875,
+      "after": 0.875
+    },
+    "CABINET": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "BUTTERFLY": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "CALLTTY": {
+      "n": 17,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "CANCELLATION": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "CANDY2": {
+      "n": 16,
+      "before": 0.9375,
+      "after": 0.9375
+    },
+    "CASTLE4": {
+      "n": 16,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "FILTER": {
+      "n": 16,
+      "before": 0.9375,
+      "after": 0.9375
+    },
+    "FEW": {
+      "n": 16,
+      "before": 0.8125,
+      "after": 0.875
+    },
+    "HEALTH": {
+      "n": 17,
+      "before": 0.7647058823529411,
+      "after": 0.7647058823529411
+    },
+    "HAMMER": {
+      "n": 18,
+      "before": 0.6666666666666666,
+      "after": 0.6111111111111112
+    },
+    "GULLIBLE": {
+      "n": 18,
+      "before": 0.7777777777777778,
+      "after": 0.7777777777777778
+    },
+    "GRENADE": {
+      "n": 16,
+      "before": 0.875,
+      "after": 0.875
+    },
+    "GREECE": {
+      "n": 18,
+      "before": 0.8333333333333334,
+      "after": 0.8333333333333334
+    },
+    "GREEN": {
+      "n": 18,
+      "before": 0.7222222222222222,
+      "after": 0.7222222222222222
+    },
+    "FUTURE": {
+      "n": 18,
+      "before": 0.7777777777777778,
+      "after": 0.7777777777777778
+    },
+    "GIFT": {
+      "n": 16,
+      "before": 0.8125,
+      "after": 0.8125
+    },
+    "FOUR": {
+      "n": 17,
+      "before": 0.7647058823529411,
+      "after": 0.5294117647058824
+    },
+    "FLUTE": {
+      "n": 16,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "IMPORTANT": {
+      "n": 18,
+      "before": 0.9444444444444444,
+      "after": 0.9444444444444444
+    },
+    "HUSBAND": {
+      "n": 18,
+      "before": 0.9444444444444444,
+      "after": 0.9444444444444444
+    },
+    "HOPE": {
+      "n": 15,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "HELMET1": {
+      "n": 16,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "HEARING": {
+      "n": 18,
+      "before": 0.8333333333333334,
+      "after": 0.8333333333333334
+    },
+    "HELLO": {
+      "n": 18,
+      "before": 0.8333333333333334,
+      "after": 0.8888888888888888
+    },
+    "LIPSTICK": {
+      "n": 17,
+      "before": 0.8235294117647058,
+      "after": 0.9411764705882353
+    },
+    "LIGHTER": {
+      "n": 18,
+      "before": 0.8888888888888888,
+      "after": 0.8888888888888888
+    },
+    "FAULT": {
+      "n": 18,
+      "before": 0.7222222222222222,
+      "after": 0.7777777777777778
+    },
+    "FINISH": {
+      "n": 17,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "FRACTION": {
+      "n": 16,
+      "before": 0.9375,
+      "after": 0.9375
+    },
+    "FRIENDLY": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "EMBARRASS": {
+      "n": 17,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "EGGBEATER": {
+      "n": 16,
+      "before": 0.9375,
+      "after": 0.9375
+    },
+    "EUROPE": {
+      "n": 18,
+      "before": 0.8333333333333334,
+      "after": 0.8333333333333334
+    },
+    "EXPERIENCE": {
+      "n": 17,
+      "before": 0.8235294117647058,
+      "after": 0.7647058823529411
+    },
+    "FALLINGASLEEP": {
+      "n": 16,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "EXPLANATION": {
+      "n": 18,
+      "before": 0.9444444444444444,
+      "after": 0.9444444444444444
+    },
+    "FARM": {
+      "n": 17,
+      "before": 0.7058823529411765,
+      "after": 0.7058823529411765
+    },
+    "ENTER": {
+      "n": 16,
+      "before": 0.9375,
+      "after": 0.9375
+    },
+    "ERASE4": {
+      "n": 16,
+      "before": 0.8125,
+      "after": 0.875
+    },
+    "EGYPT": {
+      "n": 18,
+      "before": 0.7777777777777778,
+      "after": 0.7777777777777778
+    },
+    "PAIN": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "NORTH": {
+      "n": 18,
+      "before": 0.9444444444444444,
+      "after": 0.9444444444444444
+    },
+    "MOTORCYCLE": {
+      "n": 18,
+      "before": 0.9444444444444444,
+      "after": 0.9444444444444444
+    },
+    "NAME": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "MORNING": {
+      "n": 18,
+      "before": 0.8888888888888888,
+      "after": 0.8888888888888888
+    },
+    "MAIL1": {
+      "n": 16,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "MEASURE1": {
+      "n": 18,
+      "before": 0.9444444444444444,
+      "after": 0.9444444444444444
+    },
+    "MEDITATE3": {
+      "n": 16,
+      "before": 0.75,
+      "after": 0.8125
+    },
+    "LOOKAPPEARANCE": {
+      "n": 18,
+      "before": 0.7777777777777778,
+      "after": 0.7777777777777778
+    },
+    "MAYBE": {
+      "n": 18,
+      "before": 0.9444444444444444,
+      "after": 0.9444444444444444
+    },
+    "KANGAROO3": {
+      "n": 16,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "KING": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "LAUGH": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "LATER": {
+      "n": 16,
+      "before": 0.6875,
+      "after": 0.75
+    },
+    "RECORDING": {
+      "n": 17,
+      "before": 0.8823529411764706,
+      "after": 0.8823529411764706
+    },
+    "RAIN": {
+      "n": 18,
+      "before": 0.9444444444444444,
+      "after": 0.9444444444444444
+    },
+    "SERVE1": {
+      "n": 16,
+      "before": 0.8125,
+      "after": 0.8125
+    },
+    "SCARED": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "SHINY": {
+      "n": 16,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "SEW": {
+      "n": 17,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "SINK": {
+      "n": 14,
+      "before": 0.8571428571428571,
+      "after": 0.8571428571428571
+    },
+    "SKATE": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "SLOW": {
+      "n": 17,
+      "before": 1.0,
+      "after": 0.9411764705882353
+    },
+    "SHOP2": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "SPEAKERS": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "SSHH": {
+      "n": 16,
+      "before": 0.9375,
+      "after": 0.9375
+    },
+    "PSYCHOLOGY": {
+      "n": 16,
+      "before": 0.9375,
+      "after": 0.9375
+    },
+    "RED": {
+      "n": 18,
+      "before": 0.8888888888888888,
+      "after": 0.8888888888888888
+    },
+    "RIGHT2": {
+      "n": 18,
+      "before": 0.7222222222222222,
+      "after": 0.7222222222222222
+    },
+    "SAME2": {
+      "n": 18,
+      "before": 0.9444444444444444,
+      "after": 0.9444444444444444
+    },
+    "PERSON": {
+      "n": 17,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "PEEKABOO": {
+      "n": 15,
+      "before": 0.9333333333333333,
+      "after": 1.0
+    },
+    "SUSPECT": {
+      "n": 18,
+      "before": 0.4444444444444444,
+      "after": 0.5555555555555556
+    },
+    "SURPRISE": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "STRANGE": {
+      "n": 18,
+      "before": 0.8888888888888888,
+      "after": 0.8888888888888888
+    },
+    "STOMACH": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "STICKY": {
+      "n": 16,
+      "before": 0.875,
+      "after": 0.875
+    },
+    "STEAL": {
+      "n": 16,
+      "before": 0.9375,
+      "after": 0.9375
+    },
+    "TEAM": {
+      "n": 16,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "TEMPTATION": {
+      "n": 18,
+      "before": 0.9444444444444444,
+      "after": 0.8888888888888888
+    },
+    "THAT": {
+      "n": 18,
+      "before": 0.8333333333333334,
+      "after": 0.7777777777777778
+    },
+    "TEXT": {
+      "n": 17,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "THINGS": {
+      "n": 17,
+      "before": 0.7647058823529411,
+      "after": 0.7647058823529411
+    },
+    "THIEF1": {
+      "n": 17,
+      "before": 0.8235294117647058,
+      "after": 0.8235294117647058
+    },
+    "TRAIN": {
+      "n": 18,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "TRAVEL": {
+      "n": 17,
+      "before": 0.8235294117647058,
+      "after": 0.8235294117647058
+    },
+    "TAKECARE": {
+      "n": 16,
+      "before": 0.9375,
+      "after": 0.9375
+    },
+    "SWITZERLAND": {
+      "n": 16,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "TWO": {
+      "n": 18,
+      "before": 0.3888888888888889,
+      "after": 0.6111111111111112
+    },
+    "TROUBLE": {
+      "n": 17,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "UNIVERSITY": {
+      "n": 18,
+      "before": 0.7777777777777778,
+      "after": 0.7777777777777778
+    },
+    "UNDERSTAND": {
+      "n": 18,
+      "before": 0.6111111111111112,
+      "after": 0.7777777777777778
+    },
+    "VIEW": {
+      "n": 16,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "WANT1": {
+      "n": 16,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "WEAR": {
+      "n": 17,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "VIDEOPHONE": {
+      "n": 17,
+      "before": 0.9411764705882353,
+      "after": 0.9411764705882353
+    },
+    "WHAT1": {
+      "n": 16,
+      "before": 0.9375,
+      "after": 0.9375
+    },
+    "WHY": {
+      "n": 18,
+      "before": 0.9444444444444444,
+      "after": 0.9444444444444444
+    },
+    "WINK": {
+      "n": 16,
+      "before": 0.8125,
+      "after": 0.75
+    },
+    "WORK": {
+      "n": 18,
+      "before": 0.8333333333333334,
+      "after": 0.8333333333333334
+    },
+    "WORKOUT": {
+      "n": 16,
+      "before": 1.0,
+      "after": 1.0
+    },
+    "WORM": {
+      "n": 17,
+      "before": 0.8823529411764706,
+      "after": 0.9411764705882353
+    },
+    "WRISTWATCH3": {
+      "n": 16,
+      "before": 0.875,
+      "after": 0.8125
+    },
+    "ZOOMOFF": {
+      "n": 17,
+      "before": 0.8823529411764706,
+      "after": 0.8823529411764706
+    }
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "train_mean_reward": 0.6997,
+      "rl_loss": -0.4002,
+      "ce_loss": 0.5737,
+      "reward_ema": 0.7419,
+      "val_top1": 0.6468,
+      "val_top5": 0.8654,
+      "test_top1": 0.9029,
+      "test_top5": 0.9814,
+      "sec": 37.5
+    },
+    {
+      "epoch": 2,
+      "train_mean_reward": 0.6977,
+      "rl_loss": -0.4486,
+      "ce_loss": 0.5799,
+      "reward_ema": 0.7149,
+      "val_top1": 0.6422,
+      "val_top5": 0.8685,
+      "test_top1": 0.8964,
+      "test_top5": 0.9811,
+      "sec": 37.2
+    },
+    {
+      "epoch": 3,
+      "train_mean_reward": 0.7066,
+      "rl_loss": -0.45,
+      "ce_loss": 0.5489,
+      "reward_ema": 0.7215,
+      "val_top1": 0.6315,
+      "val_top5": 0.87,
+      "test_top1": 0.8978,
+      "test_top5": 0.9834,
+      "sec": 37.3
+    },
+    {
+      "epoch": 4,
+      "train_mean_reward": 0.708,
+      "rl_loss": -0.4135,
+      "ce_loss": 0.5439,
+      "reward_ema": 0.7132,
+      "val_top1": 0.6284,
+      "val_top5": 0.8685,
+      "test_top1": 0.9012,
+      "test_top5": 0.9823,
+      "sec": 37.7
+    },
+    {
+      "epoch": 5,
+      "train_mean_reward": 0.7015,
+      "rl_loss": -0.4391,
+      "ce_loss": 0.5532,
+      "reward_ema": 0.7205,
+      "val_top1": 0.6284,
+      "val_top5": 0.8685,
+      "test_top1": 0.8981,
+      "test_top5": 0.9817,
+      "sec": 35.3
+    },
+    {
+      "epoch": 6,
+      "train_mean_reward": 0.714,
+      "rl_loss": -0.4233,
+      "ce_loss": 0.5317,
+      "reward_ema": 0.6851,
+      "val_top1": 0.6239,
+      "val_top5": 0.8731,
+      "test_top1": 0.893,
+      "test_top5": 0.9825,
+      "sec": 35.9
+    },
+    {
+      "epoch": 7,
+      "train_mean_reward": 0.7158,
+      "rl_loss": -0.4218,
+      "ce_loss": 0.5129,
+      "reward_ema": 0.7059,
+      "val_top1": 0.63,
+      "val_top5": 0.8777,
+      "test_top1": 0.8964,
+      "test_top5": 0.9837,
+      "sec": 36.6
+    },
+    {
+      "epoch": 8,
+      "train_mean_reward": 0.714,
+      "rl_loss": -0.4279,
+      "ce_loss": 0.5272,
+      "reward_ema": 0.7173,
+      "val_top1": 0.6131,
+      "val_top5": 0.87,
+      "test_top1": 0.8958,
+      "test_top5": 0.9834,
+      "sec": 41.8
+    },
+    {
+      "epoch": 9,
+      "train_mean_reward": 0.7212,
+      "rl_loss": -0.4198,
+      "ce_loss": 0.5285,
+      "reward_ema": 0.7139,
+      "val_top1": 0.6193,
+      "val_top5": 0.8685,
+      "test_top1": 0.8978,
+      "test_top5": 0.9834,
+      "sec": 46.1
+    },
+    {
+      "epoch": 10,
+      "train_mean_reward": 0.734,
+      "rl_loss": -0.4094,
+      "ce_loss": 0.4918,
+      "reward_ema": 0.7263,
+      "val_top1": 0.6284,
+      "val_top5": 0.867,
+      "test_top1": 0.8958,
+      "test_top5": 0.9825,
+      "sec": 48.0
+    },
+    {
+      "epoch": 11,
+      "train_mean_reward": 0.7225,
+      "rl_loss": -0.4072,
+      "ce_loss": 0.5177,
+      "reward_ema": 0.7294,
+      "val_top1": 0.6254,
+      "val_top5": 0.87,
+      "test_top1": 0.8984,
+      "test_top5": 0.9828,
+      "sec": 49.8
+    },
+    {
+      "epoch": 12,
+      "train_mean_reward": 0.7355,
+      "rl_loss": -0.404,
+      "ce_loss": 0.4836,
+      "reward_ema": 0.7585,
+      "val_top1": 0.6223,
+      "val_top5": 0.8685,
+      "test_top1": 0.8972,
+      "test_top5": 0.9828,
+      "sec": 50.2
+    },
+    {
+      "epoch": 13,
+      "train_mean_reward": 0.7105,
+      "rl_loss": -0.4298,
+      "ce_loss": 0.5213,
+      "reward_ema": 0.7233,
+      "val_top1": 0.6346,
+      "val_top5": 0.8746,
+      "test_top1": 0.9015,
+      "test_top5": 0.9851,
+      "sec": 50.2
+    },
+    {
+      "epoch": 14,
+      "train_mean_reward": 0.7278,
+      "rl_loss": -0.4139,
+      "ce_loss": 0.4894,
+      "reward_ema": 0.7176,
+      "val_top1": 0.6269,
+      "val_top5": 0.8716,
+      "test_top1": 0.9012,
+      "test_top5": 0.9845,
+      "sec": 45.6
+    },
+    {
+      "epoch": 15,
+      "train_mean_reward": 0.7493,
+      "rl_loss": -0.4009,
+      "ce_loss": 0.4754,
+      "reward_ema": 0.7476,
+      "val_top1": 0.6315,
+      "val_top5": 0.87,
+      "test_top1": 0.8981,
+      "test_top5": 0.9834,
+      "sec": 44.4
+    },
+    {
+      "epoch": 16,
+      "train_mean_reward": 0.7433,
+      "rl_loss": -0.3834,
+      "ce_loss": 0.4825,
+      "reward_ema": 0.7282,
+      "val_top1": 0.63,
+      "val_top5": 0.8654,
+      "test_top1": 0.8986,
+      "test_top5": 0.984,
+      "sec": 37.9
+    }
+  ],
+  "checkpoint": "/workspace/asl-citizen-bilstm/artifacts/asl_citizen_bilstm200_rl4.pt",
+  "onnx": "/workspace/asl-citizen-bilstm/artifacts/asl_citizen_bilstm200_rl4.onnx",
+  "source_checkpoint": "/workspace/asl-citizen-bilstm/artifacts/asl_citizen_bilstm200_rl.pt",
+  "backup_checkpoint": "/workspace/asl-citizen-bilstm/artifacts/asl_citizen_bilstm200_rl_before_more3.pt",
+  "label_map": "artifacts/label_map200.json",
+  "note": "patient more3 RL from asl_citizen_bilstm200_rl.pt (post-more2 ~90.06%); SignSpeak web untouched; no deploy"
+}

@@ -35,11 +35,11 @@ function translateClip(video, landmarks, durationMs, quality):
 
 ## Wiring
 
-1. Train offline → `models/asl-citizen-bilstm200/` (`*.pt`, `label_map200.json`, exported `*.onnx`). Demo **v3.0** loads `asl_citizen_bilstm200_rl.onnx`; v2.1.1 routing still skips BiLSTM for long clips. Gemini video is silent (audio stripped) and lyric-first (v2.1.3.1).
+1. Train offline → `models/asl-citizen-bilstm200/` (`*.pt`, `label_map200.json`, exported `*.onnx`). Demo **v3.0.1** loads `asl_citizen_bilstm200_rl.onnx`; v2.1.1 routing still skips BiLSTM for long clips. Gemini video is silent (audio stripped) and lyric-first (v2.1.3.1).
 2. Browser: `@mediapipe/tasks-vision` Pose + Hands while recording.
 3. `POST /api/interpret` with `video` plus optional `landmarks` binary + frame counts.
 4. Server: `onnxruntime-node` CPU inference. No GPU box. Only `GEMINI_API_KEY` is required for Gemini.
-5. UI (`sign-studio.tsx`): **Dedicated model** vs **Gemini video** badge, plus **Model v3.0 (RL) 200-class** on the dedicated path, gloss + confidence, Replay voice on `english`.
+5. UI (`sign-studio.tsx`): **Dedicated model** vs **Gemini video** badge, plus **Model v3.0.1 (RL) 200-class** on the dedicated path, gloss + confidence, Replay voice on `english`.
 
 Optional env: `DEDICATED_ASL_ENABLED=true`, `DEDICATED_ASL_THRESHOLD=0.55`,
 `DEDICATED_ASL_MARGIN=0.15`, `DEDICATED_ASL_MAX_MS=5000`,

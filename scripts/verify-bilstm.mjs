@@ -115,7 +115,7 @@ const top = norm
 console.log(
   JSON.stringify(
     {
-      version: "3.0",
+      version: "3.0.1",
       variant: "RL",
       classes: 200,
       onnx: MODEL,

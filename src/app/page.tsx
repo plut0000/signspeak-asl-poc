@@ -133,7 +133,7 @@ export default function HomePage() {
           </h2>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
             The dedicated model is an RL-fine-tuned 200-class ASL Citizen
-            BiLSTM (~89.7% test top-1, up from ~87.3% supervised). It is used
+            BiLSTM (~90.3% test top-1, up from ~89.7% after extra RL). It is used
             only for a short, one-sign-like clip with a confident prediction.
             Long sentences, songs, and conversation skip that model and use
             Gemini video. Gemini is also the fallback when confidence is low
