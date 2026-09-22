@@ -205,9 +205,9 @@ export const ASL_CITIZEN_GLOSSES = [
 export type AslCitizenGloss = (typeof ASL_CITIZEN_GLOSSES)[number];
 
 export const DEDICATED_MODEL_DIRNAME = "asl-citizen-bilstm200";
-export const DEDICATED_MODEL_VERSION = "3.0";
+export const DEDICATED_MODEL_VERSION = "3.0.1";
 export const DEDICATED_MODEL_VARIANT = "RL";
-export const DEDICATED_MODEL_LABEL = "Model v3.0 (RL) 200-class";
+export const DEDICATED_MODEL_LABEL = "Model v3.0.1 (RL) 200-class";
 export const DEDICATED_ONNX_FILENAME = "asl_citizen_bilstm200_rl.onnx";
 export const DEFAULT_DEDICATED_THRESHOLD = 0.55;
 export const MIN_LANDMARK_FRAMES = 8;

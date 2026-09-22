@@ -1,5 +1,46 @@
 # SignSpeak patch notes
 
+## Version 3.0.1 — Extra RL on the 200-class BiLSTM
+
+The dedicated isolated-sign classifier keeps the same **200** ASL Citizen
+signs. Extra RL fine-tuning replaces the v3.0 weights. The word list is
+unchanged.
+
+### Accuracy (held-out test)
+
+| | Top-1 | Top-5 |
+| --- | --- | --- |
+| Supervised CE | 87.25% | 98.14% |
+| v3.0 (first RL) | 89.70% | 98.20% |
+| **v3.0.1 (extra RL)** | **90.29%** | 98.14% |
+
+Exact test top-1 is **90.287%** (~**90.3%**, up from ~**89.7%**). Top-5 stays
+around **98.1%**. Metrics: `rl_report_v3_more3.json` and
+`v3_more3_rl_summary.json`. The v3.0 report remains in `rl_report_v3.json`.
+
+### What did not change
+
+- Isolated-sign only — not continuous signing
+- Same 200 classes; no vocabulary dump in the empty state
+- Same pipeline: landmarks → ONNX BiLSTM → Gemini English cleanup
+- **v2.1.1 long-clip routing stays:** clips longer than ~5 seconds, or
+  landmark sequences longer than a typical isolated sign (~80 frames),
+  **skip dedicated inference** and use Gemini full-video
+- Uncertain BiLSTM predictions (confidence below 55%, top-1 vs top-2
+  margin below 0.15, or normalized entropy above 0.75) also fall back to
+  Gemini video, and the UI still shows why the custom model was skipped
+- **v2.1.3.1 Gemini visual-only stays:** mic off, audio stripped, lyric-first
+  silent-clip prompts, no gang-sign or screen-recording lectures, flash-lite
+  long-clip path. Mute / audio-strip failures still soft-fail
+
+### Production weights
+
+`/api/interpret` still loads
+`models/asl-citizen-bilstm200/asl_citizen_bilstm200_rl.onnx` plus the sidecar
+`asl_citizen_bilstm200_rl.onnx.data`. Those files, and the `.pt` checkpoint,
+are the v3.0.1 RL weights. `/api/status` reports `version: "3.0.1"` and
+`Model v3.0.1 (RL) 200-class`.
+
 ## Version 3.0 — 200-class RL ASL Citizen BiLSTM
 
 The dedicated isolated-sign classifier now ships the **full 200-class** ASL
@@ -32,9 +73,9 @@ Top-5 stays around **98%**.
 
 ### Production weights
 
-`/api/interpret` loads `models/asl-citizen-bilstm200/asl_citizen_bilstm200_rl.onnx`
-plus the sidecar `asl_citizen_bilstm200_rl.onnx.data`. The `.pt` checkpoint is
-kept alongside for reference. Metrics: `rl_report_v3.json` and
+v3.0 loaded `models/asl-citizen-bilstm200/asl_citizen_bilstm200_rl.onnx` plus
+the sidecar `asl_citizen_bilstm200_rl.onnx.data`. v3.0.1 replaces those files
+in place. Metrics for this release stay in `rl_report_v3.json` and
 `v3_summary.json`.
 
 ## Version 2.1.3.1 — Visual-only song translation (faster, quieter)

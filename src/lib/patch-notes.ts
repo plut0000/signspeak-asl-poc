@@ -1,14 +1,14 @@
-export const DEMO_VERSION = "3.0";
+export const DEMO_VERSION = "3.0.1";
 
 export const PATCH_NOTES = {
   version: DEMO_VERSION,
-  title: "What's new in v3.0",
+  title: "What's new in v3.0.1",
   summary:
-    "The dedicated isolated-sign model now covers the full 200-sign ASL Citizen vocabulary. Supervised test top-1 was ~87.3%; RL fine-tuning reaches 89.7% (~+2.5 pts). Top-5 stays around 98%. Gemini visual-only song translation, mute-audio capture, and long-clip routing from v2.1.3.1 are unchanged.",
+    "Extra RL fine-tuning lifts the same 200-sign isolated model from ~89.7% to ~90.3% test top-1. Top-5 stays around 98.1%. Gemini visual-only song translation, mute soft-fail, skip-reason errors, and long-clip routing are unchanged.",
   highlights: [
-    "Full ASL Citizen vocab: 200 isolated signs (the previous 100 plus 100 more), shown with friendly labels (LUNCH1 → Lunch, COCACOLA → Coca-Cola, TAKEOFF1 → Take off).",
-    "Held-out test: supervised ~87.3% top-1 → 89.7% after RL (~+2.5 points). Top-5 ~98.2%. A 150-class fallback was not needed.",
+    "Still 200 isolated signs. Friendly labels are unchanged (LUNCH1 → Lunch, COCACOLA → Coca-Cola, TAKEOFF1 → Take off).",
+    "Held-out test: the shipped v3.0 RL checkpoint was ~89.7% top-1. Extra RL reaches ~90.3% (90.29%). Supervised training started at ~87.3%. Top-5 is ~98.1%.",
     "Same isolated-sign gates: clips longer than ~5 seconds or 80 landmark frames skip BiLSTM and use Gemini video. Dedicated path still needs confidence ≥ 55%, margin ≥ 0.15, and entropy ≤ 0.75.",
-    "Gemini visual-only from v2.1.3.1 stays: mic off, audio stripped, lyric-first silent-clip prompts, no gang-sign or screen-recording lectures, flash-lite long-clip path.",
+    "Gemini visual-only from v2.1.3.1 stays: mic off, audio stripped, lyric-first silent-clip prompts, no gang-sign or screen-recording lectures, flash-lite long-clip path. Mute failures still soft-fail, and skipped dedicated predictions still explain why.",
   ],
 } as const;

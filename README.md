@@ -9,12 +9,12 @@ existing full-video Gemini interpret path still runs.
 This is a **feasibility demo**, not production-grade ASL recognition and not a
 substitute for a human interpreter.
 
-**Demo v3.0:** dedicated model is the **200-class** RL ASL Citizen BiLSTM
-(**89.7%** test top-1, up from **87.3%** supervised; top-5 ~**98%**). Gemini
-video still translates signed songs from **vision only** (mic off, audio
-stripped, prompts ignore soundtrack — v2.1.3.1). Long / continuous clips skip
-the isolated-sign BiLSTM and use Gemini video (v2.1.1 routing). See
-`PATCH_NOTES.md`.
+**Demo v3.0.1:** dedicated model is the **200-class** RL ASL Citizen BiLSTM
+(**~90.3%** test top-1, up from **~89.7%** after extra RL; supervised was
+**~87.3%**; top-5 ~**98.1%**). Gemini video still translates signed songs from
+**vision only** (mic off, audio stripped, prompts ignore soundtrack —
+v2.1.3.1). Long / continuous clips skip the isolated-sign BiLSTM and use
+Gemini video (v2.1.1 routing). See `PATCH_NOTES.md`.
 
 **License:** ASL Citizen derived keypoints and the bundled BiLSTM are
 **CC BY-NC-SA 4.0** (research / non-commercial DECA POC). See
@@ -142,12 +142,12 @@ webcam clip
 ```
 
 Weights live in `models/asl-citizen-bilstm200/`. Production inference uses the
-v3.0 RL graph (`asl_citizen_bilstm200_rl.onnx` +
+v3.0.1 RL graph (`asl_citizen_bilstm200_rl.onnx` +
 `asl_citizen_bilstm200_rl.onnx.data`). The `.pt` checkpoint is kept alongside
 for reference. Architecture is the same backbone as the 20-, 50-, and
 100-class models: Linear 450→128, 2-layer bidirectional LSTM (h=128),
-attention pool, Linear→200. Reported test top-1 is **89.7%** (supervised CE
-was ~87.3%; +2.45 points after RL). Top-5 is ~**98.2%**. The earlier
+attention pool, Linear→200. Reported test top-1 is **90.29%** (90.287%;
+supervised CE was ~87.3%, first RL was ~89.7%). Top-5 is ~**98.1%**. The earlier
 100-class v2.1.3 weights remain in `models/asl-citizen-bilstm100/`; 50-class
 v2.1.2 in `models/asl-citizen-bilstm50/`; 20-class v2.1 in
 `models/asl-citizen-bilstm20/`.
@@ -202,7 +202,7 @@ yellow mock banner appears and a sample sentence is returned.
 - `src/lib/mediapipe-landmarks.ts` — browser Pose + Hands
 - `src/lib/gemini.ts` — gloss cleanup, video interpret, mock payload
 - `src/lib/tts.ts` — `window.speechSynthesis`
-- `models/asl-citizen-bilstm200/` — v3.0 RL ONNX (default), labels, reports
+- `models/asl-citizen-bilstm200/` — v3.0.1 RL ONNX (default), labels, reports
 - `models/asl-citizen-bilstm100/` — earlier 100-class v2.1.3 RL weights (reference)
 - `models/asl-citizen-bilstm50/` — earlier 50-class v2.1.2 RL weights (reference)
 - `models/asl-citizen-bilstm20/` — earlier 20-class v2.1 RL weights (reference)
