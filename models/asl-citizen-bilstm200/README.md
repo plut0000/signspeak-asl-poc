@@ -31,7 +31,7 @@ the v3.0 weights that shipped in the app, that is ~89.7% → ~90.3%. Top-5 is
 
 | File | Role |
 | --- | --- |
-| `asl_citizen_bilstm200_rl.onnx` + `.onnx.data` | **Production** CPU graph for Vercel / `onnxruntime-node` (v3.0.1) |
+| `asl_citizen_bilstm200_rl.onnx` + `.onnx.data` | **Production** CPU graph for Vercel / `onnxruntime-node` (v3.0.1). The training export named the sidecar `asl_citizen_bilstm200_rl4.onnx.data`; the graph’s external-data locations were retargeted to the production filename. Weights and offsets are unchanged. |
 | `asl_citizen_bilstm200_rl.pt` | RL-fine-tuned PyTorch checkpoint (reference, v3.0.1) |
 | `rl_report_v3_more3.json` | v3.0.1 metrics (before/after, per-class) |
 | `v3_more3_rl_summary.json` | Compact v3.0.1 numbers (test top-1 0.902872) |
