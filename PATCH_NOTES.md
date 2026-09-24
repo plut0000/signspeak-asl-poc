@@ -18,14 +18,21 @@ Exact test top-1 is **90.287%** (~**90.3%**, up from ~**89.7%**). Top-5 stays
 around **98.1%**. Metrics: `rl_report_v3_more3.json` and
 `v3_more3_rl_summary.json`. The v3.0 report remains in `rl_report_v3.json`.
 
+### Isolated-sign budget
+
+A slightly slow one-word demo still uses the custom model. Clips longer than
+**8 seconds** or **120** landmark frames skip BiLSTM and use Gemini video.
+Songs and other long clips stay on Gemini. If Gemini cannot read a clip the
+custom model skipped for length, the error asks for one word under ~8 seconds
+instead of brighter lighting.
+
 ### What did not change
 
 - Isolated-sign only — not continuous signing
 - Same 200 classes; no vocabulary dump in the empty state
 - Same pipeline: landmarks → ONNX BiLSTM → Gemini English cleanup
-- **v2.1.1 long-clip routing stays:** clips longer than ~5 seconds, or
-  landmark sequences longer than a typical isolated sign (~80 frames),
-  **skip dedicated inference** and use Gemini full-video
+- Songs and other long clips still **skip dedicated inference** and use
+  Gemini full-video (budget above)
 - Uncertain BiLSTM predictions (confidence below 55%, top-1 vs top-2
   margin below 0.15, or normalized entropy above 0.75) also fall back to
   Gemini video, and the UI still shows why the custom model was skipped

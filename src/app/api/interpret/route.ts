@@ -97,10 +97,11 @@ export async function POST(request: Request) {
     console.error("ASL interpret failed:", error);
     const message =
       error instanceof Error ? error.message : "Translation failed.";
+    const skip = dedicatedSkipFields(dedicatedAttempt);
     return NextResponse.json(
       {
-        error: friendlyGeminiError(message),
-        ...dedicatedSkipFields(dedicatedAttempt),
+        error: friendlyGeminiError(message, skip.fallbackReason),
+        ...skip,
       },
       { status: 502 },
     );

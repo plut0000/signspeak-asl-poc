@@ -37,8 +37,8 @@ mode so judges can click through the UX.
 
 Recording can stay ~15–30 seconds, but the BiLSTM was trained on **isolated**
 ASL Citizen clips. Sign **one** vocab sign (hello, name, basketball, …), keep
-both hands in frame, then stop. Clips longer than ~5 seconds, or landmark
-sequences longer than a typical isolated sign, **skip the dedicated model**
+both hands in frame, then stop. Clips longer than ~8 seconds, or landmark
+sequences longer than 120 frames, **skip the dedicated model**
 and use Gemini video. Fingerspelling, songs, and conversation take that path
 too. The UI badge shows **Dedicated model** vs **Gemini video** so a long
 clip is never presented as a single vocab word.
@@ -119,8 +119,8 @@ GEMINI_MODEL=gemini-3.1-flash-lite
 DEDICATED_ASL_ENABLED=true
 DEDICATED_ASL_THRESHOLD=0.55
 # DEDICATED_ASL_MARGIN=0.15
-# DEDICATED_ASL_MAX_MS=5000
-# DEDICATED_ASL_MAX_FRAMES=80
+# DEDICATED_ASL_MAX_MS=8000
+# DEDICATED_ASL_MAX_FRAMES=120
 ```
 
 `/api/status` reports the Gemini model and dedicated-model settings.
@@ -132,7 +132,7 @@ webcam clip
   ├─ MediaPipe Pose + Hands (browser, Tasks JS)
   │    75 landmarks × xyz → shoulder-center / shoulder-width norm
   │    resample to 200 → flatten 225 + velocities 225 = 450
-  │    if clip > ~5s or landmark sequence longer than an isolated sign
+  │    if clip > ~8s or landmark sequence longer than 120 frames
   │         → skip BiLSTM (Gemini full-video)
   │    else ONNX BiLSTM on the server (onnxruntime-node, CPU)
   │    if max softmax ≥ 0.55 and top-1 − top-2 ≥ 0.15 and entropy is low

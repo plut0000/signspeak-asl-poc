@@ -24,7 +24,10 @@ import {
   videoOnlyStream,
 } from "@/lib/media";
 import { DEDICATED_MODEL_LABEL } from "@/lib/asl-citizen";
-import { explainDedicatedSkip } from "@/lib/dedicated-skip-copy";
+import {
+  explainDedicatedSkip,
+  userFacingInterpretError,
+} from "@/lib/dedicated-skip-copy";
 import type {
   AppMode,
   InterpretFailure,
@@ -146,7 +149,12 @@ export function SignStudio({ mode }: { mode: AppMode }) {
               ? failure.error
               : "Translation failed. Please try again.";
           setSession("error");
-          setError(message);
+          setError(
+            userFacingInterpretError({
+              error: message,
+              fallbackReason: failure.fallbackReason,
+            }),
+          );
           setSkipNote(
             explainDedicatedSkip({
               fallbackReason: failure.fallbackReason,

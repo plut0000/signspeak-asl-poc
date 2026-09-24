@@ -19,6 +19,11 @@ const routing = await readFile(path.join(ROOT, "src/lib/asl-routing.ts"), "utf8"
 const citizen = await readFile(path.join(ROOT, "src/lib/asl-citizen.ts"), "utf8");
 const infer = await readFile(path.join(ROOT, "src/lib/asl-infer.ts"), "utf8");
 const patchNotes = await readFile(path.join(ROOT, "src/lib/patch-notes.ts"), "utf8");
+const statusRoute = await readFile(
+  path.join(ROOT, "src/app/api/status/route.ts"),
+  "utf8",
+);
+const media = await readFile(path.join(ROOT, "src/lib/media.ts"), "utf8");
 
 const MAX_MS = readExportNumber(routing, "MAX_ISOLATED_SIGN_MS");
 const MAX_FRAMES = readExportNumber(routing, "MAX_ISOLATED_SIGN_FRAMES");
@@ -31,8 +36,8 @@ const glossBlock = citizen.match(
 assert(glossBlock, "ASL_CITIZEN_GLOSSES array is missing");
 const glossCount = [...glossBlock[1].matchAll(/"([^"]+)"/g)].length;
 
-assert(MAX_MS === 5_000, "isolated-sign budget should be 5s");
-assert(MAX_FRAMES === 80, "isolated-sign frame budget should be 80");
+assert(MAX_MS === 8_000, "isolated-sign budget should be 8s");
+assert(MAX_FRAMES === 120, "isolated-sign frame budget should be 120");
 assert(THRESHOLD === 0.55, "default dedicated threshold should be 0.55");
 assert(MARGIN === 0.15, "default dedicated margin should be 0.15");
 assert(MAX_ENTROPY === 0.75, "default max normalized entropy should be 0.75");
@@ -69,6 +74,18 @@ assert(
   citizen.includes('Coca-Cola') && citizen.includes("Take off"),
   "friendly gloss map should include Coca-Cola and Take off",
 );
+assert(
+  statusRoute.includes("maxIsolatedMs: routing.maxIsolatedMs"),
+  "/api/status should report the isolated-sign millisecond budget",
+);
+assert(
+  statusRoute.includes("maxIsolatedFrames: routing.maxIsolatedFrames"),
+  "/api/status should report the isolated-sign frame budget",
+);
+assert(
+  media.includes("LONG_CLIP_HINT_MS = MAX_ISOLATED_SIGN_MS"),
+  "long-clip processing hint should follow the isolated-sign budget",
+);
 
 function assessBudget({ frames, durationMs }) {
   if (typeof durationMs === "number" && durationMs > MAX_MS) return false;
@@ -86,10 +103,12 @@ function assessPrediction({ confidence, margin, normalizedEntropy }) {
 
 const budgetCases = [
   { frames: 30, durationMs: 2_500, expect: true, name: "short isolated sign" },
-  { frames: 80, durationMs: 5_000, expect: true, name: "budget boundary" },
-  { frames: 81, expect: false, name: "one frame over budget" },
+  { frames: 90, durationMs: 6_500, expect: true, name: "slow one-word demo" },
+  { frames: 120, durationMs: 8_000, expect: true, name: "budget boundary" },
+  { frames: 121, expect: false, name: "one frame over budget" },
   { frames: 200, expect: false, name: "resample-length continuous clip" },
-  { frames: 30, durationMs: 5_001, expect: false, name: "short frames, long duration" },
+  { frames: 30, durationMs: 8_001, expect: false, name: "short frames, long duration" },
+  { frames: 40, durationMs: 9_000, expect: false, name: "over eight seconds" },
   { frames: 12, durationMs: 16_000, expect: false, name: "song-length recording" },
 ];
 

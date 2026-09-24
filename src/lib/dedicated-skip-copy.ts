@@ -7,6 +7,33 @@ const INVALID_FRAMES = /frame count is invalid/i;
 const DISABLED = /disabled/i;
 const INFERENCE_FAILED = /inference failed/i;
 const LONG_CLIP = /longer than a single isolated sign|longer than a typical isolated sign/i;
+const LIGHTING_BLAME = /brighter lighting/i;
+
+export const LONG_CLIP_GEMINI_ERROR =
+  "Google couldn’t read that longer clip. For the custom model, sign one word for under ~8 seconds.";
+
+export function isLongClipSkipReason(reason?: string) {
+  return LONG_CLIP.test(reason ?? "");
+}
+
+/**
+ * Primary line for a failed interpret. A length skip must not open with the
+ * lighting sentence; quality skips and missing skip reasons still can.
+ * More specific Gemini errors (busy, key, quota) pass through unchanged.
+ */
+export function userFacingInterpretError(input: {
+  error: string;
+  fallbackReason?: string;
+}) {
+  if (
+    isLongClipSkipReason(input.fallbackReason) &&
+    LIGHTING_BLAME.test(input.error)
+  ) {
+    return LONG_CLIP_GEMINI_ERROR;
+  }
+  return input.error;
+}
+
 const LOW_CONFIDENCE = /confidence .+ was below/i;
 const SPLIT = /split between/i;
 const HIGH_ENTROPY = /uncertain across too many/i;

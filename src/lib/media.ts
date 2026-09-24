@@ -1,7 +1,9 @@
+import { MAX_ISOLATED_SIGN_MS } from "@/lib/asl-routing";
+
 export const RECORD_SECONDS = 30;
 export const MIN_RECORD_MS = 1200;
 /** Matches isolated-sign routing; used for the long-clip processing message only. */
-export const LONG_CLIP_HINT_MS = 5_000;
+export const LONG_CLIP_HINT_MS = MAX_ISOLATED_SIGN_MS;
 
 const RECORDER_TYPES = [
   "video/webm;codecs=vp9",
