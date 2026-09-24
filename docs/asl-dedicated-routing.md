@@ -14,7 +14,7 @@ function translateClip(video, landmarks, durationMs, quality):
   if dedicated disabled or landmarks missing/poor:
     return gemini.interpretAslVideo(video)   # source = "gemini"
 
-  if durationMs > ~5s or landmarkFrames > isolated-sign budget (~80):
+  if durationMs > ~8s or landmarkFrames > isolated-sign budget (~120):
     return gemini.interpretAslVideo(video)   # skip BiLSTM entirely
 
   features = preprocess(landmarks)           # (200, 450)
@@ -42,8 +42,9 @@ function translateClip(video, landmarks, durationMs, quality):
 5. UI (`sign-studio.tsx`): **Dedicated model** vs **Gemini video** badge, plus **Model v3.0.1 (RL) 200-class** on the dedicated path, gloss + confidence, Replay voice on `english`.
 
 Optional env: `DEDICATED_ASL_ENABLED=true`, `DEDICATED_ASL_THRESHOLD=0.55`,
-`DEDICATED_ASL_MARGIN=0.15`, `DEDICATED_ASL_MAX_MS=5000`,
-`DEDICATED_ASL_MAX_FRAMES=80`.
+`DEDICATED_ASL_MARGIN=0.15`, `DEDICATED_ASL_MAX_MS=8000`,
+`DEDICATED_ASL_MAX_FRAMES=120`. If Gemini video fails after a length skip, the
+error asks for one word under ~8 seconds instead of brighter lighting.
 
 The dedicated model is isolated-sign only. Songs, conversation, names, and
 anything outside the 200-gloss list use Gemini video. Long clips fail closed

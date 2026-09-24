@@ -1,4 +1,5 @@
 import { englishFromGloss, friendlyGloss } from "@/lib/asl-citizen";
+import { userFacingInterpretError } from "@/lib/dedicated-skip-copy";
 import { GoogleGenAI, Type } from "@google/genai";
 import {
   POLITE_UNCLEAR_ENGLISH,
@@ -396,7 +397,7 @@ export function isGeminiBusyError(message: string) {
   );
 }
 
-export function friendlyGeminiError(message: string) {
+export function friendlyGeminiError(message: string, fallbackReason?: string) {
   const lower = message.toLowerCase();
   if (lower.includes("mute") || lower.includes("silent video")) {
     return "Could not prepare a silent video for translation. Try signing again.";
@@ -413,7 +414,11 @@ export function friendlyGeminiError(message: string) {
   if (lower.includes("not found") || lower.includes("404")) {
     return "That Gemini model is unavailable. Set GEMINI_MODEL in .env.local to a current multimodal model.";
   }
-  return "Gemini could not interpret this clip. Try again with brighter lighting and clearer signs.";
+  return userFacingInterpretError({
+    error:
+      "Gemini could not interpret this clip. Try again with brighter lighting and clearer signs.",
+    fallbackReason,
+  });
 }
 
 function stripMarkdownFence(text: string) {

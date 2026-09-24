@@ -11,10 +11,10 @@ type DedicatedDecisionInput = {
   top: Array<{ glossLabel: string; confidence: number }>;
 };
 
-/** Isolated ASL Citizen signs are typically 1–4s. Longer clips are continuous. */
-export const MAX_ISOLATED_SIGN_MS = 5_000;
-/** ~5.3s at the browser's 66ms landmark sample interval. */
-export const MAX_ISOLATED_SIGN_FRAMES = 80;
+/** Isolated ASL Citizen signs are typically 1–4s. A slow one-word demo still fits; longer clips stay on Gemini. */
+export const MAX_ISOLATED_SIGN_MS = 8_000;
+/** ~7.9s at the browser's 66ms landmark sample interval. */
+export const MAX_ISOLATED_SIGN_FRAMES = 120;
 export const DEFAULT_DEDICATED_MARGIN = 0.15;
 /** Softmax entropy / ln(classes). Uniform over the vocab is 1. */
 export const DEFAULT_MAX_NORMALIZED_ENTROPY = 0.75;
