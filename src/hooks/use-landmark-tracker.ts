@@ -1,6 +1,7 @@
 "use client";
 
 import { liveHandCoverageIsLow, POS_DIM } from "@/lib/asl-citizen";
+import type { OverlayStatus } from "@/lib/landmark-overlay";
 import {
   prepareLandmarkTrackers,
   resetLandmarkClock,
@@ -26,6 +27,9 @@ export function useLandmarkTracker() {
   const lastSampleRef = useRef(0);
   const lastCoveragePublishRef = useRef(0);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const capturingRef = useRef(false);
+  const latestFrameRef = useRef<Float32Array | null>(null);
+  const latestStatusRef = useRef<OverlayStatus>({ hands: 0, body: false });
 
   const [status, setStatus] = useState<TrackerStatus>("idle");
   const [error, setError] = useState("");
@@ -53,10 +57,78 @@ export function useLandmarkTracker() {
     }
   }, []);
 
-  const stop = useCallback((): LandmarkCapture => {
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    rafRef.current = null;
-    videoRef.current = null;
+  const getLatestFrame = useCallback(() => latestFrameRef.current, []);
+
+  const getLatestStatus = useCallback(
+    (): OverlayStatus => latestStatusRef.current,
+    [],
+  );
+
+  const publishCoverage = useCallback((now: number) => {
+    if (now - lastCoveragePublishRef.current < COVERAGE_PUBLISH_MS) return;
+    lastCoveragePublishRef.current = now;
+    const observedFrames = Math.max(
+      framesRef.current.length,
+      attemptsRef.current,
+    );
+    const low = liveHandCoverageIsLow(observedFrames, handFramesRef.current);
+    setLowHandCoverage((current) => (current === low ? current : low));
+  }, []);
+
+  const watch = useCallback(
+    (video: HTMLVideoElement | null) => {
+      if (!video || !landmarkersRef.current) return false;
+      videoRef.current = video;
+      if (rafRef.current != null) return true;
+
+      lastSampleRef.current = 0;
+      const tick = () => {
+        const landmarkers = landmarkersRef.current;
+        const currentVideo = videoRef.current;
+        if (!landmarkers || !currentVideo) return;
+        const now = performance.now();
+        if (now - lastSampleRef.current >= SAMPLE_MS) {
+          lastSampleRef.current = now;
+          if (capturingRef.current) attemptsRef.current += 1;
+          try {
+            const sample = sampleLandmarkFrame(landmarkers, currentVideo);
+            if (sample) {
+              latestFrameRef.current = sample.frame;
+              latestStatusRef.current = {
+                hands: Number(sample.leftHand) + Number(sample.rightHand),
+                body: sample.hasPose,
+              };
+              if (capturingRef.current) {
+                framesRef.current.push(sample.frame);
+                if (sample.hasPose) poseFramesRef.current += 1;
+                if (sample.hasHand) handFramesRef.current += 1;
+              }
+            } else {
+              latestFrameRef.current = null;
+              latestStatusRef.current = { hands: 0, body: false };
+            }
+          } catch {
+            // One bad frame should not stop the live overlay or coverage hint.
+          }
+          if (capturingRef.current) publishCoverage(now);
+        }
+        rafRef.current = requestAnimationFrame(tick);
+      };
+      rafRef.current = requestAnimationFrame(tick);
+      return true;
+    },
+    [publishCoverage],
+  );
+
+  const stop = useCallback((options?: { disconnect?: boolean }): LandmarkCapture => {
+    capturingRef.current = false;
+    if (options?.disconnect) {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+      videoRef.current = null;
+      latestFrameRef.current = null;
+      latestStatusRef.current = { hands: 0, body: false };
+    }
     const frames = framesRef.current;
     const packed = new Float32Array(frames.length * POS_DIM);
     frames.forEach((frame, index) => packed.set(frame, index * POS_DIM));
@@ -79,59 +151,30 @@ export function useLandmarkTracker() {
   const start = useCallback(
     (video: HTMLVideoElement | null) => {
       if (!video || !landmarkersRef.current) return false;
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
       framesRef.current = [];
       poseFramesRef.current = 0;
       handFramesRef.current = 0;
       attemptsRef.current = 0;
-      lastSampleRef.current = 0;
       lastCoveragePublishRef.current = 0;
-      videoRef.current = video;
-      resetLandmarkClock();
+      capturingRef.current = true;
+      lastSampleRef.current = 0;
       setLowHandCoverage(false);
       setStatus("sampling");
-
-      const publishCoverage = (now: number) => {
-        if (now - lastCoveragePublishRef.current < COVERAGE_PUBLISH_MS) return;
-        lastCoveragePublishRef.current = now;
-        const observedFrames = Math.max(
-          framesRef.current.length,
-          attemptsRef.current,
-        );
-        const low = liveHandCoverageIsLow(
-          observedFrames,
-          handFramesRef.current,
-        );
-        setLowHandCoverage((current) => (current === low ? current : low));
-      };
-
-      const tick = () => {
-        const landmarkers = landmarkersRef.current;
-        const currentVideo = videoRef.current;
-        if (!landmarkers || !currentVideo) return;
-        const now = performance.now();
-        if (now - lastSampleRef.current >= SAMPLE_MS) {
-          lastSampleRef.current = now;
-          attemptsRef.current += 1;
-          try {
-            const sample = sampleLandmarkFrame(landmarkers, currentVideo);
-            if (sample) {
-              framesRef.current.push(sample.frame);
-              if (sample.hasPose) poseFramesRef.current += 1;
-              if (sample.hasHand) handFramesRef.current += 1;
-            }
-          } catch {
-            // One bad frame should not stop the live coverage hint.
-          }
-          publishCoverage(now);
-        }
-        rafRef.current = requestAnimationFrame(tick);
-      };
-      rafRef.current = requestAnimationFrame(tick);
-      return true;
+      if (rafRef.current == null) resetLandmarkClock();
+      return watch(video);
     },
-    [],
+    [watch],
   );
 
-  return { status, error, lowHandCoverage, prepare, start, stop };
+  return {
+    status,
+    error,
+    lowHandCoverage,
+    prepare,
+    watch,
+    start,
+    stop,
+    getLatestFrame,
+    getLatestStatus,
+  };
 }

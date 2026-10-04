@@ -12,9 +12,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { LandmarkOverlay } from "@/components/landmark-overlay";
 import { useCamera } from "@/hooks/use-camera";
 import { useLandmarkTracker } from "@/hooks/use-landmark-tracker";
+import { useShowTracking } from "@/hooks/use-show-tracking";
 import { useSpeech } from "@/hooks/use-speech";
+import type { PackedPlayback } from "@/lib/landmark-overlay";
 import {
   extensionForMime,
   LONG_CLIP_HINT_MS,
@@ -59,9 +62,12 @@ export function SignStudio({ mode }: { mode: AppMode }) {
     status: trackerStatus,
     lowHandCoverage,
     prepare: prepareLandmarks,
+    watch: watchLandmarks,
     start: startLandmarks,
     stop: stopLandmarks,
+    getLatestFrame,
   } = useLandmarkTracker();
+  const { showTracking, toggleShowTracking } = useShowTracking();
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const startedAtRef = useRef(0);
@@ -69,6 +75,8 @@ export function SignStudio({ mode }: { mode: AppMode }) {
   const tickRef = useRef<number | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
+  const replayVideoRef = useRef<HTMLVideoElement | null>(null);
+  const replayUrlRef = useRef("");
 
   const [secondsLeft, setSecondsLeft] = useState(RECORD_SECONDS);
   const [session, setSession] = useState<SessionStatus>("idle");
@@ -76,12 +84,25 @@ export function SignStudio({ mode }: { mode: AppMode }) {
   const [error, setError] = useState("");
   const [skipNote, setSkipNote] = useState("");
   const [processingLongClip, setProcessingLongClip] = useState(false);
+  const [replayUrl, setReplayUrl] = useState("");
+  const [replayLandmarks, setReplayLandmarks] = useState<PackedPlayback | null>(
+    null,
+  );
 
   const clearTimers = useCallback(() => {
     if (autoStopRef.current) window.clearTimeout(autoStopRef.current);
     if (tickRef.current) window.clearInterval(tickRef.current);
     autoStopRef.current = null;
     tickRef.current = null;
+  }, []);
+
+  const clearReplay = useCallback(() => {
+    if (replayUrlRef.current) {
+      URL.revokeObjectURL(replayUrlRef.current);
+      replayUrlRef.current = "";
+    }
+    setReplayUrl("");
+    setReplayLandmarks(null);
   }, []);
 
   const resetOutput = useCallback(() => {
@@ -93,7 +114,8 @@ export function SignStudio({ mode }: { mode: AppMode }) {
     setSkipNote("");
     setSession("idle");
     setProcessingLongClip(false);
-  }, [stopSpeech]);
+    clearReplay();
+  }, [clearReplay, stopSpeech]);
 
   const interpretClip = useCallback(
     async (
@@ -245,6 +267,15 @@ export function SignStudio({ mode }: { mode: AppMode }) {
       }
       const type = recorder.mimeType || mimeType || "video/webm";
       const blob = new Blob(chunksRef.current, { type });
+      if (replayUrlRef.current) URL.revokeObjectURL(replayUrlRef.current);
+      const url = URL.createObjectURL(blob);
+      replayUrlRef.current = url;
+      setReplayUrl(url);
+      setReplayLandmarks(
+        capture.frames > 0
+          ? { packed: capture.packed, frames: capture.frames }
+          : null,
+      );
       void interpretClip(blob, capture, elapsed);
     };
 
@@ -273,15 +304,21 @@ export function SignStudio({ mode }: { mode: AppMode }) {
   ]);
 
   useEffect(() => {
-    if (cameraStatus === "ready") {
-      void prepareLandmarks();
-    }
-  }, [cameraStatus, prepareLandmarks]);
+    if (cameraStatus !== "ready") return;
+    let cancelled = false;
+    void prepareLandmarks().then((ok) => {
+      if (!cancelled && ok) watchLandmarks(videoRef.current);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [cameraStatus, prepareLandmarks, videoRef, watchLandmarks]);
 
   useEffect(() => {
     return () => {
       clearTimers();
-      stopLandmarks();
+      stopLandmarks({ disconnect: true });
+      if (replayUrlRef.current) URL.revokeObjectURL(replayUrlRef.current);
       if (recorderRef.current && recorderRef.current.state !== "inactive") {
         recorderRef.current.stop();
       }
@@ -346,6 +383,15 @@ export function SignStudio({ mode }: { mode: AppMode }) {
               <Badge variant="outline" className="h-6 border-primary/30 text-primary">
                 {DEDICATED_MODEL_LABEL}
               </Badge>
+              <Button
+                type="button"
+                size="xs"
+                variant={showTracking ? "secondary" : "outline"}
+                aria-pressed={showTracking}
+                onClick={toggleShowTracking}
+              >
+                Show tracking
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -358,6 +404,13 @@ export function SignStudio({ mode }: { mode: AppMode }) {
               muted
               autoPlay
               aria-label="Live webcam preview of your signing"
+            />
+            <LandmarkOverlay
+              videoRef={videoRef}
+              getLiveFrame={getLatestFrame}
+              mirrored
+              active={cameraReady}
+              draw={showTracking}
             />
             {!cameraReady ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/80 p-6 text-center">
@@ -406,12 +459,37 @@ export function SignStudio({ mode }: { mode: AppMode }) {
             ) : null}
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
-            Preview is mirrored so it feels like a mirror. Landmarks and Gemini
-            use the unmirrored camera stream. For the dedicated model, sign one
-            vocab sign, or several with a half-second pause between them (hold
-            still or lower your hands). Songs and conversation fall back to
-            Gemini video.
+            Preview is mirrored so it feels like a mirror. The tracking overlay
+            uses the same MediaPipe landmarks as the dedicated model and is not
+            saved into the clip. For the dedicated model, sign one vocab sign,
+            or several with a half-second pause between them (hold still or
+            lower your hands). Songs and conversation fall back to Gemini video.
           </p>
+          {replayUrl ? (
+            <div className="mt-3 space-y-2">
+              <p className="text-xs font-medium text-foreground">Last clip</p>
+              <div className="relative overflow-hidden rounded-xl bg-black ring-1 ring-foreground/10">
+                <video
+                  ref={replayVideoRef}
+                  className="aspect-4/3 h-auto w-full object-cover"
+                  src={replayUrl}
+                  controls
+                  playsInline
+                  muted
+                  aria-label="Replay of the clip that was just uploaded"
+                />
+                {replayLandmarks ? (
+                  <LandmarkOverlay
+                    videoRef={replayVideoRef}
+                    playback={replayLandmarks}
+                    mirrored={false}
+                    active
+                    draw={showTracking}
+                  />
+                ) : null}
+              </div>
+            </div>
+          ) : null}
         </CardContent>
         <CardFooter className="flex flex-col gap-2 sm:flex-row">
           {session === "recording" ? (
