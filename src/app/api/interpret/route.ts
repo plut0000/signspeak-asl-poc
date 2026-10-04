@@ -3,15 +3,17 @@ import {
   isDedicatedEnabled,
   MAX_LANDMARK_FRAMES,
 } from "@/lib/asl-citizen";
-import { predictGloss } from "@/lib/asl-infer";
+import { predictGloss, type DedicatedPrediction } from "@/lib/asl-infer";
 import {
   assessDedicatedPrediction,
   assessIsolatedSignBudget,
   parseDurationMs,
 } from "@/lib/asl-routing";
 import { decodeLandmarkBuffer, landmarksToFeatures } from "@/lib/asl-preprocess";
+import { isSignSequenceEnabled, readSignSequence } from "@/lib/asl-sequence";
 import {
   englishFromDedicatedGloss,
+  englishFromDedicatedGlosses,
   friendlyGeminiError,
   interpretAslVideo,
 } from "@/lib/gemini";
@@ -25,7 +27,9 @@ export const maxDuration = 120;
 const MIN_BYTES = 8_000;
 const MAX_BYTES = 18 * 1024 * 1024;
 
-type DedicatedAttempt = Awaited<ReturnType<typeof tryDedicatedPath>>;
+type DedicatedAttempt =
+  | { ok: true; result: InterpretSuccess }
+  | { ok: false; reason: string; prediction?: DedicatedPrediction };
 
 export async function POST(request: Request) {
   let dedicatedAttempt: DedicatedAttempt | undefined;
@@ -126,14 +130,7 @@ function dedicatedSkipFields(attempt: DedicatedAttempt | undefined): {
   };
 }
 
-async function tryDedicatedPath(form: FormData): Promise<
-  | { ok: true; result: InterpretSuccess }
-  | {
-      ok: false;
-      reason: string;
-      prediction?: Awaited<ReturnType<typeof predictGloss>>;
-    }
-> {
+async function tryDedicatedPath(form: FormData): Promise<DedicatedAttempt> {
   if (!isDedicatedEnabled()) {
     return { ok: false, reason: "Dedicated ASL model is disabled." };
   }
@@ -156,7 +153,9 @@ async function tryDedicatedPath(form: FormData): Promise<
 
   const budget = assessIsolatedSignBudget({ frames, durationMs });
   if (!budget.ok) {
-    return { ok: false, reason: budget.reason };
+    return isSignSequenceEnabled()
+      ? trySignSequence({ landmarks, frames, durationMs })
+      : { ok: false, reason: budget.reason };
   }
 
   const quality = assessLandmarkQuality({ frames, poseFrames, handFrames });
@@ -186,6 +185,62 @@ async function tryDedicatedPath(form: FormData): Promise<
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.warn("Dedicated ASL path failed; using Gemini video.", message);
+    return {
+      ok: false,
+      reason: "Dedicated model inference failed; using Gemini video.",
+    };
+  }
+}
+
+/** Clips longer than one isolated sign: read several signs in a row, or fall back to Gemini video. */
+async function trySignSequence(input: {
+  landmarks: File;
+  frames: number;
+  durationMs?: number;
+}): Promise<DedicatedAttempt> {
+  try {
+    const packed = decodeLandmarkBuffer(
+      await input.landmarks.arrayBuffer(),
+      input.frames,
+    );
+    const reading = await readSignSequence({
+      packed,
+      frames: input.frames,
+      durationMs: input.durationMs,
+      predict: predictGloss,
+    });
+    if (!reading.ok) {
+      return { ok: false, reason: reading.reason };
+    }
+
+    console.info(
+      `Sign sequence: ${reading.confident}/${reading.total} ${reading.method} segments → ${reading.glosses.map((item) => item.gloss).join(" ")}`,
+    );
+    const glosses = reading.glosses.map(({ gloss, glossLabel, confidence }) => ({
+      gloss,
+      glossLabel,
+      confidence,
+    }));
+    const [only] = reading.glosses;
+    const result =
+      reading.glosses.length === 1
+        ? await englishFromDedicatedGloss({
+            gloss: only.gloss,
+            confidence: only.confidence,
+            top: only.top,
+          })
+        : await englishFromDedicatedGlosses({ glosses });
+    return {
+      ok: true,
+      result: {
+        ...result,
+        glosses,
+        segments: { total: reading.total, confident: reading.confident },
+      },
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn("Sign sequence path failed; using Gemini video.", message);
     return {
       ok: false,
       reason: "Dedicated model inference failed; using Gemini video.",

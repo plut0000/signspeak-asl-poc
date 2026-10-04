@@ -24,6 +24,15 @@ const statusRoute = await readFile(
   "utf8",
 );
 const media = await readFile(path.join(ROOT, "src/lib/media.ts"), "utf8");
+const sequence = await readFile(path.join(ROOT, "src/lib/asl-sequence.ts"), "utf8");
+const segmentation = await readFile(
+  path.join(ROOT, "src/lib/sign-segmentation.ts"),
+  "utf8",
+);
+const interpretRoute = await readFile(
+  path.join(ROOT, "src/app/api/interpret/route.ts"),
+  "utf8",
+);
 
 const MAX_MS = readExportNumber(routing, "MAX_ISOLATED_SIGN_MS");
 const MAX_FRAMES = readExportNumber(routing, "MAX_ISOLATED_SIGN_FRAMES");
@@ -85,6 +94,29 @@ assert(
 assert(
   media.includes("LONG_CLIP_HINT_MS = MAX_ISOLATED_SIGN_MS"),
   "long-clip processing hint should follow the isolated-sign budget",
+);
+assert(
+  readExportNumber(sequence, "MAX_SIGN_SEQUENCE_MS") === 32_000,
+  "several-signs path should allow ~30 s recordings (plus auto-stop slack)",
+);
+assert(
+  sequence.includes("MAX_SIGN_SEQUENCE_FRAMES = MAX_LANDMARK_FRAMES") &&
+    readExportNumber(citizen, "MAX_LANDMARK_FRAMES") === 900,
+  "several-signs path should allow up to 900 landmark frames",
+);
+assert(
+  readExportNumber(segmentation, "MAX_SEGMENT_FRAMES") === 120,
+  "single-sign segments should be capped at 120 frames",
+);
+assert(
+  interpretRoute.includes("isSignSequenceEnabled()") &&
+    interpretRoute.includes("readSignSequence({"),
+  "clips over the isolated-sign budget should try the several-signs path",
+);
+assert(
+  interpretRoute.includes("const prediction = await predictGloss(features);") &&
+    interpretRoute.includes("const decision = assessDedicatedPrediction(prediction);"),
+  "clips inside the isolated-sign budget should keep the single-sign path",
 );
 
 function assessBudget({ frames, durationMs }) {

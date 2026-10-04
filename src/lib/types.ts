@@ -25,6 +25,13 @@ export type StatusResponse = {
   };
 };
 
+export type SignSegmentCounts = {
+  /** Single-sign segments found in a clip longer than one isolated sign. */
+  total: number;
+  /** Segments that cleared the dedicated-model gates. */
+  confident: number;
+};
+
 export type InterpretSuccess = {
   english: string;
   unclear: boolean;
@@ -34,6 +41,9 @@ export type InterpretSuccess = {
   gloss?: string;
   glossLabel?: string;
   confidence?: number;
+  /** Several signs in a row, in signed order, after merging repeats. */
+  glosses?: DedicatedTop[];
+  segments?: SignSegmentCounts;
   fallbackReason?: string;
   dedicatedTop?: DedicatedTop;
 };
