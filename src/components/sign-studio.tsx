@@ -69,6 +69,7 @@ export function SignStudio({ mode }: { mode: AppMode }) {
     start: startLandmarks,
     stop: stopLandmarks,
     getLatestFrame,
+    getPerfStats,
   } = useLandmarkTracker();
   const { showTracking, toggleShowTracking } = useShowTracking();
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -418,6 +419,7 @@ export function SignStudio({ mode }: { mode: AppMode }) {
             <LandmarkOverlay
               videoRef={videoRef}
               getLiveFrame={getLatestFrame}
+              getPerfStats={getPerfStats}
               mirrored
               active={cameraReady}
               draw={showTracking}

@@ -4,10 +4,17 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { liveHandCoverageIsLow, POS_DIM } from "../src/lib/asl-citizen.ts";
 import {
+  CHIP_UPDATE_MS,
   coverMappedPoint,
   describeOverlayStatus,
+  DETECT_YIELD_MS,
   frameAtPlaybackTime,
+  nextDetectDelay,
+  OVERLAY_MAX_DPR,
+  overlayDevicePixelRatio,
   overlayStatusFromFrame,
+  PREVIEW_DETECT_MAX_WIDTH,
+  RECORD_SAMPLE_MS,
   readShowTrackingPref,
 } from "../src/lib/landmark-overlay.ts";
 import {
@@ -489,6 +496,42 @@ const memory = {
 assert(readShowTrackingPref(memory) === true, "tracking pref defaults on");
 store.set("signspeak.showTracking", "0");
 assert(readShowTrackingPref(memory) === false, "tracking pref remembers off");
+
+assert(RECORD_SAMPLE_MS === 66, "recording still samples every 66ms for the BiLSTM");
+assert(CHIP_UPDATE_MS === 250, "status chip should throttle to ~4 Hz");
+assert(PREVIEW_DETECT_MAX_WIDTH === 480, "preview detect should use a smaller frame");
+assert(nextDetectDelay(20, 66) === 66, "a fast detect should wait the sample budget");
+assert(
+  nextDetectDelay(80, 66) === 80 + DETECT_YIELD_MS,
+  "a slow detect should skip ahead instead of stacking",
+);
+assert(overlayDevicePixelRatio(3) === OVERLAY_MAX_DPR, "overlay DPR should cap");
+assert(overlayDevicePixelRatio(1) === 1, "1x displays should stay 1x");
+
+const tracker = await readFile(
+  path.join(ROOT, "src/hooks/use-landmark-tracker.ts"),
+  "utf8",
+);
+const overlay = await readFile(
+  path.join(ROOT, "src/components/landmark-overlay.tsx"),
+  "utf8",
+);
+assert(tracker.includes("nextDetectDelay"), "tracker should skip detects when busy");
+assert(tracker.includes("setTimeout"), "detect should not live on the draw rAF");
+assert(
+  !tracker.includes("requestAnimationFrame"),
+  "tracker should not share the overlay animation frame",
+);
+assert(
+  tracker.includes("capturingRef.current) return video"),
+  "recording should keep detecting on the full camera frame",
+);
+assert(overlay.includes("CHIP_UPDATE_MS"), "overlay chip should be throttled");
+assert(
+  overlay.includes('process.env.NODE_ENV !== "production"'),
+  "fps readout should stay off in production",
+);
+assert(studio.includes("getPerfStats"), "studio should pass detect timings to the overlay");
 
 console.log(
   JSON.stringify(

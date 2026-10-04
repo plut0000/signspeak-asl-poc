@@ -1,13 +1,11 @@
 "use client";
 
 import {
-  COORDS,
-  HAND_LANDMARKS,
-  LEFT_HAND_OFFSET,
-  POSE_LANDMARKS,
-  POS_DIM,
-  RIGHT_HAND_OFFSET,
-} from "@/lib/asl-citizen";
+  packLandmarkSample,
+  type LandmarkSample,
+} from "@/lib/pack-landmark-sample";
+
+export type { LandmarkSample } from "@/lib/pack-landmark-sample";
 
 const WASM_URL =
   "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm";
@@ -21,14 +19,6 @@ export type LandmarkCapture = {
   frames: number;
   poseFrames: number;
   handFrames: number;
-};
-
-export type LandmarkSample = {
-  frame: Float32Array;
-  hasPose: boolean;
-  hasHand: boolean;
-  leftHand: boolean;
-  rightHand: boolean;
 };
 
 type VisionModule = typeof import("@mediapipe/tasks-vision");
@@ -57,11 +47,25 @@ export async function prepareLandmarkTrackers() {
   return loadPromise;
 }
 
+export type LandmarkSource = HTMLVideoElement | HTMLCanvasElement;
+
+function sourceSize(source: LandmarkSource) {
+  if (source instanceof HTMLVideoElement) {
+    return {
+      ready: source.readyState >= 2,
+      width: source.videoWidth,
+      height: source.videoHeight,
+    };
+  }
+  return { ready: true, width: source.width, height: source.height };
+}
+
 export function sampleLandmarkFrame(
   landmarkers: Landmarkers,
-  video: HTMLVideoElement,
+  source: LandmarkSource,
 ): LandmarkSample | null {
-  if (video.readyState < 2 || video.videoWidth < 8 || video.videoHeight < 8) {
+  const size = sourceSize(source);
+  if (!size.ready || size.width < 8 || size.height < 8) {
     return null;
   }
 
@@ -69,62 +73,18 @@ export function sampleLandmarkFrame(
   if (timestamp <= lastTimestamp) timestamp = lastTimestamp + 1;
   lastTimestamp = timestamp;
 
-  const poseResult = landmarkers.pose.detectForVideo(video, timestamp);
-  const handResult = landmarkers.hands.detectForVideo(video, timestamp);
-  const pose = poseResult.landmarks[0];
-  if (!pose || pose.length < POSE_LANDMARKS) {
-    return null;
-  }
-
-  const frame = new Float32Array(POS_DIM);
-  writeLandmarks(frame, 0, pose, POSE_LANDMARKS);
-
-  let hasHand = false;
-  let leftHand = false;
-  let rightHand = false;
-  const hands = handResult.landmarks ?? [];
+  const poseResult = landmarkers.pose.detectForVideo(source, timestamp);
+  const handResult = landmarkers.hands.detectForVideo(source, timestamp);
   const handedness = handResult.handedness ?? handResult.handednesses ?? [];
-  for (let i = 0; i < hands.length; i++) {
-    const label = handedness[i]?.[0]?.categoryName ?? "";
-    const isLeft = label.toLowerCase() === "left";
-    const offset = isLeft ? LEFT_HAND_OFFSET : RIGHT_HAND_OFFSET;
-    if (writeLandmarks(frame, offset, hands[i], HAND_LANDMARKS)) {
-      hasHand = true;
-      if (isLeft) leftHand = true;
-      else rightHand = true;
-    }
-  }
-
-  return { frame, hasPose: true, hasHand, leftHand, rightHand };
+  return packLandmarkSample(
+    poseResult.landmarks[0],
+    handResult.landmarks ?? [],
+    handedness,
+  );
 }
 
 export function resetLandmarkClock() {
   lastTimestamp = -1;
-}
-
-function writeLandmarks(
-  dest: Float32Array,
-  jointOffset: number,
-  points: Array<{ x: number; y: number; z?: number }>,
-  count: number,
-) {
-  let wrote = false;
-  for (let i = 0; i < count; i++) {
-    const point = points[i];
-    if (!point) continue;
-    const off = (jointOffset + i) * COORDS;
-    dest[off] = finiteOrZero(point.x);
-    dest[off + 1] = finiteOrZero(point.y);
-    dest[off + 2] = finiteOrZero(point.z);
-    if (dest[off] !== 0 || dest[off + 1] !== 0 || dest[off + 2] !== 0) {
-      wrote = true;
-    }
-  }
-  return wrote;
-}
-
-function finiteOrZero(value: number | undefined) {
-  return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
 async function createLandmarkers(): Promise<Landmarkers> {
@@ -152,6 +112,15 @@ async function createLandmarkers(): Promise<Landmarkers> {
       minTrackingConfidence: 0.4,
     }),
   );
+
+  const warmup = document.createElement("canvas");
+  warmup.width = 64;
+  warmup.height = 64;
+  try {
+    sampleLandmarkFrame({ pose, hands }, warmup);
+  } catch {
+    resetLandmarkClock();
+  }
 
   return { pose, hands };
 }
