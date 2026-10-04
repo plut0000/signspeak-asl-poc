@@ -2,7 +2,8 @@
 
 A DECA EIP proof of concept. Someone signs a short phrase in American Sign
 Language on camera. A dedicated 200-class BiLSTM reads isolated signs from
-MediaPipe landmarks. Gemini only turns that gloss into a clean English sentence
+MediaPipe landmarks; a longer clip is split at pauses so it can read several
+signs in a row. Gemini only turns those glosses into a clean English sentence
 (and the browser speaks it). If the classifier is unsure or landmarks fail, the
 existing full-video Gemini interpret path still runs.
 
@@ -13,8 +14,9 @@ substitute for a human interpreter.
 (**~90.3%** test top-1, up from **~89.7%** after extra RL; supervised was
 **~87.3%**; top-5 ~**98.1%**). Gemini video still translates signed songs from
 **vision only** (mic off, audio stripped, prompts ignore soundtrack —
-v2.1.3.1). Long / continuous clips skip the isolated-sign BiLSTM and use
-Gemini video (v2.1.1 routing). See `PATCH_NOTES.md`.
+v2.1.3.1). Clips longer than one sign are split at pauses and read sign by
+sign; when most of those signs are unclear, the clip uses Gemini video
+instead. See `PATCH_NOTES.md`.
 
 **License:** ASL Citizen derived keypoints and the bundled BiLSTM are
 **CC BY-NC-SA 4.0** (research / non-commercial DECA POC). See
@@ -25,7 +27,7 @@ Gemini video (v2.1.1 routing). See `PATCH_NOTES.md`.
 1. Landing page explains the hybrid loop: webcam → landmarks → BiLSTM gloss → Gemini English → voice.
 2. Camera preview after permission is granted.
 3. Record / Stop (auto-stops after 30 seconds).
-4. English translation on screen, plus predicted gloss + confidence and whether the path was **Dedicated model** or **Gemini video**.
+4. English translation on screen, plus predicted gloss + confidence (or the gloss sequence, e.g. HELLO · NAME · WHAT, for several signs) and whether the path was **Dedicated model** or **Gemini video**.
 5. Automatic speech plus a **Replay voice** button.
 6. Sign again / Clear.
 
@@ -37,11 +39,17 @@ mode so judges can click through the UX.
 
 Recording can stay ~15–30 seconds, but the BiLSTM was trained on **isolated**
 ASL Citizen clips. Sign **one** vocab sign (hello, name, basketball, …), keep
-both hands in frame, then stop. Clips longer than ~8 seconds, or landmark
-sequences longer than 120 frames, **skip the dedicated model**
-and use Gemini video. Fingerspelling, songs, and conversation take that path
-too. The UI badge shows **Dedicated model** vs **Gemini video** so a long
-clip is never presented as a single vocab word.
+both hands in frame, then stop. To sign **several** vocab signs, pause for
+about half a second after each one (hold still or lower your hands).
+
+Clips up to ~8 seconds and 120 landmark frames are read as one sign, exactly
+as before. Longer clips (up to ~30 seconds / 900 frames) are split into
+single-sign segments at those pauses and each segment goes through the same
+confidence gates. When more than half the segments pass, the glosses become
+one English sentence; otherwise the clip uses Gemini video. Fingerspelling,
+songs, and conversation take that path too. The UI badge shows **Dedicated
+model** vs **Gemini video** so a long clip is never presented as a vocab word
+the model did not read.
 
 ### 200-class vocab
 
@@ -91,7 +99,8 @@ Optional model / routing checks (no webcam):
 
 ```bash
 npm run verify:model
-npm run verify:routing
+npm run verify:routing   # includes segmentation + several-signs routing
+npm run verify:skip-copy
 npm run verify:gemini
 # with the app running:
 npm run verify:api
@@ -121,6 +130,8 @@ DEDICATED_ASL_THRESHOLD=0.55
 # DEDICATED_ASL_MARGIN=0.15
 # DEDICATED_ASL_MAX_MS=8000
 # DEDICATED_ASL_MAX_FRAMES=120
+# Set to false to send every clip over the single-sign budget to Gemini video.
+# DEDICATED_ASL_SEQUENCE_ENABLED=true
 ```
 
 `/api/status` reports the Gemini model and dedicated-model settings.
@@ -132,11 +143,16 @@ webcam clip
   ├─ MediaPipe Pose + Hands (browser, Tasks JS)
   │    75 landmarks × xyz → shoulder-center / shoulder-width norm
   │    resample to 200 → flatten 225 + velocities 225 = 450
-  │    if clip > ~8s or landmark sequence longer than 120 frames
-  │         → skip BiLSTM (Gemini full-video)
-  │    else ONNX BiLSTM on the server (onnxruntime-node, CPU)
-  │    if max softmax ≥ 0.55 and top-1 − top-2 ≥ 0.15 and entropy is low
-  │         → Gemini gloss→English (or dictionary if no key)
+  │    if clip ≤ ~8s and ≤ 120 frames (one sign)
+  │         ONNX BiLSTM on the server (onnxruntime-node, CPU)
+  │         if max softmax ≥ 0.55 and top-1 − top-2 ≥ 0.15 and entropy is low
+  │              → Gemini gloss→English (or dictionary if no key)
+  │    else if clip ≤ ~30s and ≤ 900 frames (several signs)
+  │         split at pauses (wrists still or hands down ≥ 400 ms);
+  │         motion runs over ~4s → 2s sliding windows; ≤ 120 frames each
+  │         BiLSTM + the same gates on every segment, merge repeats
+  │         if more than half the segments pass
+  │              → Gemini glosses→English sentence (or dictionary if no key)
   └─ else / missing hands / too few frames / tracker failed / unsure softmax
        existing Gemini full-video interpret (or mock)
 ```
@@ -183,10 +199,11 @@ forcing a bad gloss.
 3. Open **Camera demo**. Allow the webcam. Unmute speakers.
 4. Sign a single vocab sign (hello is the easiest). Keep hands in frame.
 5. Point to the **Dedicated model** badge, gloss + confidence, then the spoken
-   English. Sign something outside the list, hide your hands, or record a longer
-   clip to show **Gemini video** fallback.
-6. Be explicit about limits: 200 glosses, isolated signs, not a certified
-   interpreter.
+   English. Then sign two or three vocab signs with a short pause after each
+   to show the gloss sequence and the sentence. Sign something outside the
+   list, hide your hands, or sign a song to show **Gemini video** fallback.
+6. Be explicit about limits: 200 glosses, signs read one at a time (with
+   pauses, not fluent signing), not a certified interpreter.
 
 **Backup if the room has no key or weak Wi-Fi:** leave `GEMINI_API_KEY` empty.
 A confident dedicated prediction still shows dictionary English. Otherwise the
@@ -199,6 +216,7 @@ yellow mock banner appears and a sample sentence is returned.
 - `src/app/api/interpret/route.ts` — dedicated ONNX path + Gemini fallback
 - `src/app/api/status/route.ts` — mock mode + dedicated settings
 - `src/lib/asl-preprocess.ts` / `asl-infer.ts` — landmark contract + ONNX
+- `src/lib/sign-segmentation.ts` / `asl-sequence.ts` — split long clips into signs, read them in order
 - `src/lib/mediapipe-landmarks.ts` — browser Pose + Hands
 - `src/lib/gemini.ts` — gloss cleanup, video interpret, mock payload
 - `src/lib/tts.ts` — `window.speechSynthesis`
