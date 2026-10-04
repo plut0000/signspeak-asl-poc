@@ -20,9 +20,11 @@ export const SLIDING_STRIDE_MS = 1_000;
 /** Shorter still stretches (turning points of slow signs, tracking blips) stay inside the sign. */
 export const MIN_PAUSE_MS = 400;
 /** Shorter bursts of motion inside a pause are landmark jitter, not a sign. */
-export const MIN_MOTION_MS = 200;
-/** Keeps the start and end of each sign that sits just inside the neighbouring pause. */
-export const SEGMENT_PAD_MS = 130;
+export const MIN_MOTION_MS = 280;
+/** Keep a bit of the neighbouring pause so a real webcam sign is not cut at the wrist stop. */
+export const SEGMENT_PAD_MS = 280;
+/** Motion shorter than this is a twitch, not a vocab sign. */
+export const MIN_SIGN_MS = 600;
 const SMOOTH_MS = 200;
 /** Wrist speeds are in shoulder widths per second; signing hands move well above 1. */
 export const MIN_PAUSE_SPEED = 0.3;
@@ -77,8 +79,8 @@ export function segmentSigns(
   const toFrames = (ms: number) => Math.round((ms * fps) / 1000);
   const minPause = Math.max(2, toFrames(MIN_PAUSE_MS));
   const minMotion = Math.max(2, toFrames(MIN_MOTION_MS));
-  const pad = Math.min(Math.floor(minPause / 2), toFrames(SEGMENT_PAD_MS));
-  const minSign = MIN_LANDMARK_FRAMES;
+  const pad = toFrames(SEGMENT_PAD_MS);
+  const minSign = Math.max(MIN_LANDMARK_FRAMES, toFrames(MIN_SIGN_MS));
   const maxRun = Math.min(
     MAX_SEGMENT_FRAMES,
     Math.max(minSign, toFrames(MAX_SIGN_RUN_MS)),
@@ -112,30 +114,46 @@ export function segmentSigns(
   let cursor = 0;
   for (const [pauseStart, pauseEnd] of [...pauses, [frames, frames]]) {
     if (pauseStart > cursor) {
-      let start = Math.max(0, cursor - pad);
-      let end = Math.min(frames, pauseStart + pad);
-      // Untracked edge frames read as a jump from zero to the first hand position.
-      while (start < end && !anyHand[start]) start += 1;
-      while (end > start && !anyHand[end - 1]) end -= 1;
-      if (end - start >= minSign) {
-        const windowed = end - start > maxRun;
-        const pieces = windowed
-          ? slidingWindows(start, end, window, stride)
-          : [[start, end] as const];
-        for (const [a, b] of pieces) {
-          segments.push({
-            start: a,
-            end: b,
-            method: windowed ? "window" : "pause",
-            handFrames: countOnes(anyHand, a, b),
-          });
+      const motionStart = cursor;
+      const motionEnd = pauseStart;
+      // Pad only after the unpadded run is long enough; otherwise a twitch
+      // plus pause padding becomes a fourth "sign" on real webcam clips.
+      if (motionEnd - motionStart >= minSign) {
+        let start = Math.max(0, motionStart - pad);
+        let end = Math.min(frames, motionEnd + pad);
+        const trimmed = trimUntrackedEdges(start, end, anyHand);
+        if (trimmed.end - trimmed.start >= minSign) {
+          start = trimmed.start;
+          end = trimmed.end;
+        }
+        if (segments.length) {
+          start = Math.max(start, segments[segments.length - 1].end);
+        }
+        if (end - start >= minSign) {
+          const windowed = end - start > maxRun;
+          const pieces = windowed
+            ? slidingWindows(start, end, window, stride)
+            : [[start, end] as const];
+          for (const [a, b] of pieces) {
+            segments.push({
+              start: a,
+              end: b,
+              method: windowed ? "window" : "pause",
+              handFrames: countOnes(anyHand, a, b),
+            });
+          }
         }
       }
     }
     cursor = pauseEnd;
   }
 
-  return { segments, fps, handFrames, pauseSpeed };
+  return {
+    segments,
+    fps,
+    handFrames,
+    pauseSpeed,
+  };
 }
 
 function handPresence(packed: Float32Array, frames: number) {
@@ -270,3 +288,13 @@ function countOnes(mask: Uint8Array, start: number, end: number) {
   for (let t = start; t < end; t++) count += mask[t];
   return count;
 }
+
+/** Drop leading/trailing untracked frames only when that still leaves a full sign. */
+function trimUntrackedEdges(start: number, end: number, anyHand: Uint8Array) {
+  let from = start;
+  let to = end;
+  while (from < to && !anyHand[from]) from += 1;
+  while (to > from && !anyHand[to - 1]) to -= 1;
+  return { start: from, end: to };
+}
+

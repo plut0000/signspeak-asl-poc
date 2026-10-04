@@ -19,10 +19,13 @@ import { useShowTracking } from "@/hooks/use-show-tracking";
 import { useSpeech } from "@/hooks/use-speech";
 import type { PackedPlayback } from "@/lib/landmark-overlay";
 import {
+  CLIP_TOO_LARGE_ERROR,
   extensionForMime,
   LONG_CLIP_HINT_MS,
+  MAX_VIDEO_BYTES,
   MIN_RECORD_MS,
   pickRecorderMimeType,
+  RECORD_BITS_PER_SECOND,
   RECORD_SECONDS,
   videoOnlyStream,
 } from "@/lib/media";
@@ -128,6 +131,11 @@ export function SignStudio({ mode }: { mode: AppMode }) {
       setProcessingLongClip(durationMs > LONG_CLIP_HINT_MS);
       setError("");
       setSkipNote("");
+      if (blob.size > MAX_VIDEO_BYTES) {
+        setSession("error");
+        setError(CLIP_TOO_LARGE_ERROR);
+        return;
+      }
       const form = new FormData();
       const mimeType = blob.type || "video/webm";
       form.append("video", blob, `signing.${extensionForMime(mimeType)}`);
@@ -237,9 +245,11 @@ export function SignStudio({ mode }: { mode: AppMode }) {
       recorder = mimeType
         ? new MediaRecorder(recordStream, {
             mimeType,
-            videoBitsPerSecond: 900_000,
+            videoBitsPerSecond: RECORD_BITS_PER_SECOND,
           })
-        : new MediaRecorder(recordStream, { videoBitsPerSecond: 900_000 });
+        : new MediaRecorder(recordStream, {
+            videoBitsPerSecond: RECORD_BITS_PER_SECOND,
+          });
     } catch {
       setSession("error");
       setError("Could not start the recorder in this browser.");
