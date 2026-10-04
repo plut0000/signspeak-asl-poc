@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import http from "node:http";
 import { buildClip, countHandFrames, SIGN_GLOSSES } from "./sign-fixtures.mjs";
 
 const BASE = process.env.SIGN_SPEAK_URL ?? "http://127.0.0.1:43127";
@@ -230,19 +231,35 @@ for (const testCase of cases) {
   }
 }
 
-const oversized = await fetch(`${BASE}/api/interpret`, {
-  method: "POST",
-  headers: {
-    "content-length": String(5 * 1024 * 1024),
-    "x-forwarded-for": "198.51.100.250",
-  },
-  body: "x",
+const oversized = await new Promise((resolve, reject) => {
+  const url = new URL(`${BASE}/api/interpret`);
+  const req = http.request(
+    {
+      hostname: url.hostname,
+      port: url.port,
+      path: url.pathname,
+      method: "POST",
+      headers: {
+        "content-length": String(5 * 1024 * 1024),
+        "x-forwarded-for": "198.51.100.250",
+      },
+    },
+    (res) => {
+      let data = "";
+      res.on("data", (chunk) => {
+        data += chunk;
+      });
+      res.on("end", () => resolve({ status: res.statusCode, body: data }));
+    },
+  );
+  req.on("error", reject);
+  req.end("x");
 });
 let oversizedPayload = {};
 try {
-  oversizedPayload = await oversized.json();
+  oversizedPayload = JSON.parse(oversized.body);
 } catch {
-  oversizedPayload = { error: await oversized.text() };
+  oversizedPayload = { error: oversized.body };
 }
 const oversizedOk = oversized.status === 413;
 results.push({
