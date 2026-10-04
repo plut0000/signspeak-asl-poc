@@ -2,7 +2,14 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { liveHandCoverageIsLow } from "../src/lib/asl-citizen.ts";
+import { liveHandCoverageIsLow, POS_DIM } from "../src/lib/asl-citizen.ts";
+import {
+  coverMappedPoint,
+  describeOverlayStatus,
+  frameAtPlaybackTime,
+  overlayStatusFromFrame,
+  readShowTrackingPref,
+} from "../src/lib/landmark-overlay.ts";
 import {
   NO_SIGNS_REASON,
   readSignSequence,
@@ -361,6 +368,73 @@ assert(
 );
 assert(studio.includes("Keep both hands in frame"), "recording UI should hint when hands are out of frame");
 assert(studio.includes("lowHandCoverage"), "hint should follow tracker hand coverage");
+assert(studio.includes("Show tracking"), "studio should expose a Show tracking toggle");
+assert(studio.includes("LandmarkOverlay"), "studio should mount the landmark overlay");
+assert(
+  studio.includes("getLatestFrame"),
+  "overlay should reuse the live MediaPipe frames",
+);
+assert(
+  studio.includes("replayLandmarks"),
+  "last-clip playback should keep captured landmarks",
+);
+
+assert(
+  describeOverlayStatus({ hands: 2, body: true }) === "Hands: 2 · Body: tracked",
+  "status chip copy should match the live tracking chip",
+);
+assert(
+  describeOverlayStatus({ hands: 0, body: false }) ===
+    "Hands: 0 · Body: not tracked",
+  "empty status chip copy should stay plain",
+);
+
+const emptyStatus = overlayStatusFromFrame(null);
+assert(emptyStatus.hands === 0 && !emptyStatus.body, "null frame is untracked");
+
+const poseOnly = new Float32Array(POS_DIM);
+poseOnly[11 * 3] = 0.4;
+poseOnly[11 * 3 + 1] = 0.3;
+const poseStatus = overlayStatusFromFrame(poseOnly);
+assert(poseStatus.body && poseStatus.hands === 0, "shoulders count as a body");
+
+const bothHands = new Float32Array(POS_DIM);
+bothHands[0] = 0.5;
+bothHands[1] = 0.2;
+bothHands[33 * 3] = 0.3;
+bothHands[33 * 3 + 1] = 0.4;
+bothHands[54 * 3] = 0.7;
+bothHands[54 * 3 + 1] = 0.4;
+const handStatus = overlayStatusFromFrame(bothHands);
+assert(handStatus.hands === 2 && handStatus.body, "both hands and a face point");
+
+assert(
+  frameAtPlaybackTime(null, 0, 1) === null,
+  "playback without landmarks should skip",
+);
+assert(
+  frameAtPlaybackTime({ packed: new Float32Array(0), frames: 0 }, 0, 1) === null,
+  "zero-frame playback should skip",
+);
+
+const packed = new Float32Array(POS_DIM * 3);
+packed[POS_DIM] = 1;
+const mid = frameAtPlaybackTime({ packed, frames: 3 }, 0.5, 1);
+assert(mid != null && mid[0] === 1, "playback should pick the frame at currentTime");
+
+const mapped = coverMappedPoint(0.5, 0.5, 960, 720, 640, 480);
+assert(
+  Math.abs(mapped.x - 320) < 0.01 && Math.abs(mapped.y - 240) < 0.01,
+  "cover mapping should keep a centered point centered on a matching aspect",
+);
+
+const store = new Map<string, string>();
+const memory = {
+  getItem: (key: string) => store.get(key) ?? null,
+};
+assert(readShowTrackingPref(memory) === true, "tracking pref defaults on");
+store.set("signspeak.showTracking", "0");
+assert(readShowTrackingPref(memory) === false, "tracking pref remembers off");
 
 console.log(
   JSON.stringify(
