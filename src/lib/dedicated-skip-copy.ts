@@ -14,9 +14,9 @@ const SEQUENCE_UNCLEAR = /^(.*?) for the dedicated model, so gemini video is use
 const LIGHTING_BLAME = /brighter lighting/i;
 
 export const LONG_CLIP_GEMINI_ERROR =
-  "Google couldn’t read that longer clip. For the custom model, sign one word for under ~8 seconds.";
+  "Could not translate that longer clip. Sign one word for under ~8 seconds.";
 export const SEQUENCE_GEMINI_ERROR =
-  "Google couldn’t read that longer clip. For the custom model, pause briefly between signs and keep both hands in frame.";
+  "Could not translate that longer clip. Pause briefly between signs and keep both hands in frame.";
 
 export function isLongClipSkipReason(reason?: string) {
   return LONG_CLIP.test(reason ?? "") || SEQUENCE_TOO_LONG.test(reason ?? "");

@@ -15,6 +15,13 @@ import {
 } from "@/lib/sign-segmentation";
 import type { DedicatedTop } from "@/lib/types";
 
+/** Looser than the isolated-sign path so a webcam phrase is not thrown away for one soft piece. */
+export const SEQUENCE_THRESHOLD = 0.4;
+export const SEQUENCE_MARGIN = 0.08;
+export const SEQUENCE_MAX_ENTROPY = 0.88;
+/** Below-gate top-1 still sent to Gemini text cleanup when a few segments agree enough. */
+export const SEQUENCE_CANDIDATE_THRESHOLD = 0.28;
+
 /** The recorder stops at 30 s; the extra 2 s covers auto-stop latency. */
 export const MAX_SIGN_SEQUENCE_MS = 32_000;
 export const MAX_SIGN_SEQUENCE_FRAMES = MAX_LANDMARK_FRAMES;
@@ -51,8 +58,10 @@ export type SignSequenceReading =
 
 /**
  * Reads a clip that is longer than one isolated sign as several signs in a
- * row. Each segment must clear the single-sign gates, and more than half of
- * the segments must do so, or the clip falls back to Gemini video.
+ * row. Sequence gates are looser than the isolated-sign path. A majority of
+ * segments, or two signs covering at least half the pieces, is enough; if
+ * those fail, soft top-1 guesses still go to Gemini text cleanup. Otherwise
+ * the clip falls back to Gemini video.
  */
 export async function readSignSequence(input: {
   packed: Float32Array;
@@ -86,7 +95,13 @@ export async function readSignSequence(input: {
     return skip(TOO_MANY_SEGMENTS_REASON);
   }
 
+  const sequenceGates = {
+    threshold: SEQUENCE_THRESHOLD,
+    margin: SEQUENCE_MARGIN,
+    maxNormalizedEntropy: SEQUENCE_MAX_ENTROPY,
+  };
   const accepted: SegmentPrediction[] = [];
+  const candidates: SegmentPrediction[] = [];
   for (const segment of segments) {
     const length = segment.end - segment.start;
     const quality = assessLandmarkQuality({
@@ -100,23 +115,47 @@ export async function readSignSequence(input: {
       length,
     );
     const prediction = await predict(features);
-    if (assessDedicatedPrediction(prediction).ok) accepted.push(prediction);
+    if (prediction.confidence >= SEQUENCE_CANDIDATE_THRESHOLD) {
+      candidates.push(prediction);
+    }
+    if (assessDedicatedPrediction(prediction, sequenceGates).ok) {
+      accepted.push(prediction);
+    }
   }
 
   const total = segments.length;
-  const confident = accepted.length;
   const method = sequenceMethod(segments);
-  if (confident * 2 <= total) {
-    return skip(unclearSegmentsReason(confident, total, method), total, confident);
+  if (enoughSequenceHits(accepted.length, total)) {
+    return {
+      ok: true,
+      glosses: mergeConsecutiveGlosses(accepted),
+      total,
+      confident: accepted.length,
+      method,
+    };
+  }
+  if (enoughSequenceHits(candidates.length, total) && candidates.length >= 2) {
+    return {
+      ok: true,
+      glosses: mergeConsecutiveGlosses(candidates),
+      total,
+      confident: accepted.length,
+      method,
+    };
   }
 
-  return {
-    ok: true,
-    glosses: mergeConsecutiveGlosses(accepted),
+  return skip(
+    unclearSegmentsReason(accepted.length, total, method),
     total,
-    confident,
-    method,
-  };
+    accepted.length,
+  );
+}
+
+/** Majority, or at least two signs covering half the pieces (a twitch should not sink a phrase). */
+export function enoughSequenceHits(hits: number, total: number) {
+  if (hits <= 0 || total <= 0) return false;
+  if (hits * 2 > total) return true;
+  return hits >= 2 && hits * 2 >= total;
 }
 
 /** HELLO, HELLO, NAME, HELLO → HELLO, NAME, HELLO. Keeps the most confident read of each run. */

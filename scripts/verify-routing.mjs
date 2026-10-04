@@ -64,8 +64,8 @@ assert(
   "inference should load from the versioned dedicated model dir",
 );
 assert(
-  patchNotes.includes('DEMO_VERSION = "3.1.0"'),
-  "demo version should be 3.1.0",
+  patchNotes.includes('DEMO_VERSION = "3.1.1"'),
+  "demo version should be 3.1.1",
 );
 assert(
   citizen.includes('DEDICATED_MODEL_VERSION = "3.0.1"'),
@@ -134,6 +134,11 @@ assert(
     nextConfig.includes("Referrer-Policy"),
   "next.config should set basic security headers",
 );
+const uploadLimits = await readFile(
+  path.join(ROOT, "src/lib/upload-limits.ts"),
+  "utf8",
+);
+const camera = await readFile(path.join(ROOT, "src/hooks/use-camera.ts"), "utf8");
 assert(
   interpretRoute.includes("content-length") &&
     interpretRoute.includes("formData()") &&
@@ -141,12 +146,38 @@ assert(
   "interpret should check Content-Length before reading formData",
 );
 assert(
-  interpretRoute.includes("4.5 * 1024 * 1024"),
-  "upload cap should match Vercel’s ~4.5 MB body limit",
+  uploadLimits.includes("4.5 * 1024 * 1024") &&
+    interpretRoute.includes("MAX_UPLOAD_BYTES") &&
+    interpretRoute.includes("MAX_VIDEO_BYTES"),
+  "upload cap should match Vercel’s ~4.5 MB body limit, with room for landmarks",
 );
 assert(
-  interpretRoute.includes("sniffVideoMime") && !interpretRoute.includes("video.type"),
-  "interpret should sniff the video container instead of trusting the client MIME type",
+  interpretRoute.includes("resolveVideoMime") &&
+    !interpretRoute.includes("Please upload a webcam video clip"),
+  "interpret should resolve video mime without rejecting unknown magic bytes",
+);
+assert(
+  readExportNumber(sequence, "SEQUENCE_THRESHOLD") === 0.4 &&
+    readExportNumber(sequence, "SEQUENCE_MARGIN") === 0.08,
+  "several-signs path should use looser gates than the isolated-sign path",
+);
+assert(
+  camera.includes("width: { ideal: 640 }") &&
+    camera.includes("height: { ideal: 480 }") &&
+    camera.includes("frameRate: { ideal: 15, max: 24 }"),
+  "webcam capture should stay small enough for a 30 s Gemini upload",
+);
+const overlay = await readFile(
+  path.join(ROOT, "src/lib/landmark-overlay.ts"),
+  "utf8",
+);
+assert(
+  overlay.includes("video.videoWidth") && overlay.includes("video.videoHeight"),
+  "tracking overlay should map landmarks from the live video size, not a hardcoded 960×720",
+);
+assert(
+  readExportNumber(uploadLimits, "RECORD_BITS_PER_SECOND") === 480_000,
+  "MediaRecorder bitrate should keep a 30 s clip under the video cap",
 );
 assert(
   interpretRoute.includes("takeInterpretSlot(clientIp(request))"),
