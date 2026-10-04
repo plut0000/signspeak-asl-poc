@@ -40,9 +40,11 @@ export function LandmarkOverlay({
   const playbackRef = useRef(playback);
   const drawRef = useRef(draw);
 
-  getLiveFrameRef.current = getLiveFrame;
-  playbackRef.current = playback;
-  drawRef.current = draw;
+  useEffect(() => {
+    getLiveFrameRef.current = getLiveFrame;
+    playbackRef.current = playback;
+    drawRef.current = draw;
+  }, [draw, getLiveFrame, playback]);
 
   useEffect(() => {
     if (!active) {

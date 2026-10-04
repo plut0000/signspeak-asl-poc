@@ -418,9 +418,9 @@ assert(
 );
 
 const packed = new Float32Array(POS_DIM * 3);
-packed[POS_DIM] = 0.42;
+packed[POS_DIM] = 1;
 const mid = frameAtPlaybackTime({ packed, frames: 3 }, 0.5, 1);
-assert(mid && mid[0] === 0.42, "playback should pick the frame at currentTime");
+assert(mid != null && mid[0] === 1, "playback should pick the frame at currentTime");
 
 const mapped = coverMappedPoint(0.5, 0.5, 960, 720, 640, 480);
 assert(
