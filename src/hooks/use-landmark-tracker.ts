@@ -14,8 +14,13 @@ import {
   resetLandmarkClock,
   sampleLandmarkFrame,
   type LandmarkCapture,
-  type LandmarkSource,
+  type LandmarkDelegates,
+  type LandmarkRuntime,
 } from "@/lib/mediapipe-landmarks";
+import {
+  LandmarkWorkerClient,
+  workerDetectSupported,
+} from "@/lib/landmark-worker-client";
 import { useCallback, useRef, useState } from "react";
 
 type TrackerStatus = "idle" | "loading" | "ready" | "error" | "sampling";
@@ -26,12 +31,14 @@ const PERF_WINDOW_MS = 1000;
 export type LandmarkPerf = {
   detectFps: number;
   detectMs: number;
+  poseDelegate: LandmarkDelegates["pose"] | "";
+  handDelegate: LandmarkDelegates["hands"] | "";
+  detectThread: "worker" | "main" | "";
 };
 
 export function useLandmarkTracker() {
-  const landmarkersRef = useRef<Awaited<
-    ReturnType<typeof prepareLandmarkTrackers>
-  > | null>(null);
+  const landmarkersRef = useRef<LandmarkRuntime | null>(null);
+  const workerRef = useRef<LandmarkWorkerClient | null>(null);
   const framesRef = useRef<Float32Array[]>([]);
   const poseFramesRef = useRef(0);
   const handFramesRef = useRef(0);
@@ -46,6 +53,10 @@ export function useLandmarkTracker() {
   const latestStatusRef = useRef<OverlayStatus>({ hands: 0, body: false });
   const previewCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const previewCtxRef = useRef<CanvasRenderingContext2D | null>(null);
+  const generationRef = useRef(0);
+  const lastTimestampRef = useRef(-1);
+  const delegatesRef = useRef<LandmarkDelegates | null>(null);
+  const threadRef = useRef<"worker" | "main" | "">("");
   const perfRef = useRef({
     detectFps: 0,
     detectMs: 0,
@@ -58,15 +69,37 @@ export function useLandmarkTracker() {
   const [error, setError] = useState("");
   const [lowHandCoverage, setLowHandCoverage] = useState(false);
 
+  const ready = () => Boolean(workerRef.current || landmarkersRef.current);
+
   const prepare = useCallback(async () => {
-    if (landmarkersRef.current) {
+    if (ready()) {
       setStatus((current) => (current === "sampling" ? current : "ready"));
       return true;
     }
     setStatus("loading");
     setError("");
+    if (workerDetectSupported()) {
+      try {
+        const client = new LandmarkWorkerClient();
+        const delegates = await client.start();
+        workerRef.current = client;
+        delegatesRef.current = delegates;
+        threadRef.current = "worker";
+        logLandmarkDelegates("worker", delegates);
+        setStatus("ready");
+        return true;
+      } catch {
+        workerRef.current = null;
+        delegatesRef.current = null;
+        threadRef.current = "";
+      }
+    }
     try {
-      landmarkersRef.current = await prepareLandmarkTrackers();
+      const runtime = await prepareLandmarkTrackers();
+      landmarkersRef.current = runtime;
+      delegatesRef.current = runtime.delegates;
+      threadRef.current = "main";
+      logLandmarkDelegates("main", runtime.delegates);
       setStatus("ready");
       return true;
     } catch (caught) {
@@ -89,7 +122,14 @@ export function useLandmarkTracker() {
 
   const getPerfStats = useCallback((): LandmarkPerf => {
     const perf = perfRef.current;
-    return { detectFps: perf.detectFps, detectMs: perf.detectMs };
+    const delegates = delegatesRef.current;
+    return {
+      detectFps: perf.detectFps,
+      detectMs: perf.detectMs,
+      poseDelegate: delegates?.pose ?? "",
+      handDelegate: delegates?.hands ?? "",
+      detectThread: threadRef.current,
+    };
   }, []);
 
   const publishCoverage = useCallback((now: number) => {
@@ -118,7 +158,16 @@ export function useLandmarkTracker() {
     }
   };
 
-  const previewSource = (video: HTMLVideoElement): LandmarkSource => {
+  const takeTimestamp = () => {
+    let timestamp = performance.now();
+    if (timestamp <= lastTimestampRef.current) {
+      timestamp = lastTimestampRef.current + 1;
+    }
+    lastTimestampRef.current = timestamp;
+    return timestamp;
+  };
+
+  const previewSource = (video: HTMLVideoElement) => {
     if (capturingRef.current) return video;
     if (video.videoWidth < 8 || video.videoHeight < 8) return video;
     let canvas = previewCanvasRef.current;
@@ -141,7 +190,9 @@ export function useLandmarkTracker() {
     return canvas;
   };
 
-  const applySample = (sample: ReturnType<typeof sampleLandmarkFrame>) => {
+  const applySample = (
+    sample: ReturnType<typeof sampleLandmarkFrame>,
+  ) => {
     if (!sample) {
       latestFrameRef.current = null;
       latestStatusRef.current = { hands: 0, body: false };
@@ -163,49 +214,58 @@ export function useLandmarkTracker() {
 
   const watch = useCallback(
     (video: HTMLVideoElement | null) => {
-      if (!video || !landmarkersRef.current) return false;
+      if (!video || !ready()) return false;
       videoRef.current = video;
       if (detectTimerRef.current != null) return true;
 
-      const tick = () => {
+      const tick = async () => {
+        const worker = workerRef.current;
         const landmarkers = landmarkersRef.current;
         const currentVideo = videoRef.current;
-        if (!landmarkers || !currentVideo) {
+        if ((!worker && !landmarkers) || !currentVideo) {
           detectTimerRef.current = null;
           return;
         }
         if (detectingRef.current) {
-          detectTimerRef.current = window.setTimeout(tick, DETECT_YIELD_MS);
+          detectTimerRef.current = window.setTimeout(() => {
+            void tick();
+          }, DETECT_YIELD_MS);
           return;
         }
 
         detectingRef.current = true;
         const started = performance.now();
+        const generation = generationRef.current;
         try {
           if (capturingRef.current) attemptsRef.current += 1;
-          const sample = sampleLandmarkFrame(
-            landmarkers,
-            previewSource(currentVideo),
-          );
+          const source = previewSource(currentVideo);
+          const timestamp = takeTimestamp();
+          const sample = worker
+            ? await worker.detect(source, timestamp)
+            : sampleLandmarkFrame(landmarkers!, source, timestamp);
+          if (generation !== generationRef.current) return;
           applySample(sample);
         } catch {
           // One bad frame should not stop the live overlay or coverage hint.
+          if (generation !== generationRef.current) return;
         } finally {
-          detectingRef.current = false;
+          if (generation === generationRef.current) detectingRef.current = false;
         }
+        if (generation !== generationRef.current) return;
         const elapsed = performance.now() - started;
         noteDetect(elapsed);
         if (capturingRef.current) publishCoverage(performance.now());
         const budget = capturingRef.current
           ? RECORD_SAMPLE_MS
           : PREVIEW_SAMPLE_MS;
-        detectTimerRef.current = window.setTimeout(
-          tick,
-          nextDetectDelay(elapsed, budget),
-        );
+        detectTimerRef.current = window.setTimeout(() => {
+          void tick();
+        }, nextDetectDelay(elapsed, budget));
       };
 
-      detectTimerRef.current = window.setTimeout(tick, 0);
+      detectTimerRef.current = window.setTimeout(() => {
+        void tick();
+      }, 0);
       return true;
     },
     [publishCoverage],
@@ -214,6 +274,7 @@ export function useLandmarkTracker() {
   const stop = useCallback((options?: { disconnect?: boolean }): LandmarkCapture => {
     capturingRef.current = false;
     if (options?.disconnect) {
+      generationRef.current += 1;
       if (detectTimerRef.current != null) {
         window.clearTimeout(detectTimerRef.current);
         detectTimerRef.current = null;
@@ -238,13 +299,13 @@ export function useLandmarkTracker() {
     attemptsRef.current = 0;
     lastCoveragePublishRef.current = 0;
     setLowHandCoverage(false);
-    setStatus(landmarkersRef.current ? "ready" : "idle");
+    setStatus(ready() ? "ready" : "idle");
     return capture;
   }, []);
 
   const start = useCallback(
     (video: HTMLVideoElement | null) => {
-      if (!video || !landmarkersRef.current) return false;
+      if (!video || !ready()) return false;
       framesRef.current = [];
       poseFramesRef.current = 0;
       handFramesRef.current = 0;
@@ -253,7 +314,11 @@ export function useLandmarkTracker() {
       capturingRef.current = true;
       setLowHandCoverage(false);
       setStatus("sampling");
-      if (detectTimerRef.current == null) resetLandmarkClock();
+      if (detectTimerRef.current == null) {
+        lastTimestampRef.current = -1;
+        resetLandmarkClock();
+        workerRef.current?.resetClock();
+      }
       return watch(video);
     },
     [watch],
@@ -271,4 +336,13 @@ export function useLandmarkTracker() {
     getLatestStatus,
     getPerfStats,
   };
+}
+
+function logLandmarkDelegates(
+  thread: "worker" | "main",
+  delegates: LandmarkDelegates,
+) {
+  console.info(
+    `[signspeak] landmark detect on ${thread} thread · pose ${delegates.pose} · hands ${delegates.hands}`,
+  );
 }

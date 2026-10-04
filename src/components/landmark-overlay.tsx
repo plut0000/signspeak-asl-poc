@@ -1,12 +1,17 @@
 "use client";
 
+import { POS_DIM } from "@/lib/asl-citizen";
 import {
+  approachPackedFrame,
   CHIP_UPDATE_MS,
+  describeDetectReadout,
   describeOverlayStatus,
   drawLandmarkOverlay,
   frameAtPlaybackTime,
+  landmarkSmoothAlpha,
   overlayStatusFromFrame,
   resizeOverlayCanvas,
+  type DetectReadout,
   type PackedPlayback,
 } from "@/lib/landmark-overlay";
 import { cn } from "@/lib/utils";
@@ -21,7 +26,7 @@ const SHOW_DEV_FPS = process.env.NODE_ENV !== "production";
 type LandmarkOverlayProps = {
   videoRef: RefObject<HTMLVideoElement | null>;
   getLiveFrame?: () => Float32Array | null;
-  getPerfStats?: () => { detectFps: number; detectMs: number };
+  getPerfStats?: () => DetectReadout;
   playback?: PackedPlayback | null;
   mirrored?: boolean;
   /** Camera or clip is on screen. */
@@ -71,8 +76,11 @@ export function LandmarkOverlay({
     let lastChip = "";
     let lastChipAt = 0;
     let lastFpsAt = 0;
+    let lastDrawAt = 0;
     let draws = 0;
     let drawWindowStart = 0;
+    const drawn = new Float32Array(POS_DIM);
+    const target = new Float32Array(POS_DIM);
 
     const tick = (now: number) => {
       const canvas = canvasRef.current;
@@ -86,10 +94,21 @@ export function LandmarkOverlay({
         if (ctx) {
           const { width, height, dpr } = resizeOverlayCanvas(canvas);
           const clip = playbackRef.current;
-          const frame =
+          const latest =
             clip && clip.frames > 0
               ? frameAtPlaybackTime(clip, video.currentTime, video.duration)
               : getLiveFrameRef.current();
+          const live = !clip || clip.frames <= 0;
+          let frame = latest;
+          if (live && latest) {
+            target.set(latest);
+            const alpha = landmarkSmoothAlpha(now - lastDrawAt);
+            approachPackedFrame(drawn, target, alpha);
+            frame = drawn;
+          } else if (live) {
+            drawn.fill(0);
+          }
+          lastDrawAt = now;
           if (drawRef.current && (clip == null || clip.frames > 0)) {
             drawLandmarkOverlay(ctx, frame, video, width, height, dpr);
           } else {
@@ -98,7 +117,7 @@ export function LandmarkOverlay({
           }
           if (now - lastChipAt >= CHIP_UPDATE_MS) {
             lastChipAt = now;
-            const text = describeOverlayStatus(overlayStatusFromFrame(frame));
+            const text = describeOverlayStatus(overlayStatusFromFrame(latest));
             if (chipRef.current && text !== lastChip) {
               lastChip = text;
               chipRef.current.textContent = text;
@@ -120,7 +139,7 @@ export function LandmarkOverlay({
                 detectMs: 0,
               };
               if (fpsRef.current) {
-                fpsRef.current.textContent = `${Math.round(drawFps)} draw · ${Math.round(detect.detectFps)} det · ${Math.round(detect.detectMs)}ms`;
+                fpsRef.current.textContent = `${Math.round(drawFps)} draw · ${describeDetectReadout(detect)}`;
               }
             }
           }

@@ -4,11 +4,16 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { liveHandCoverageIsLow, POS_DIM } from "../src/lib/asl-citizen.ts";
 import {
+  approachPackedFrame,
   CHIP_UPDATE_MS,
   coverMappedPoint,
+  describeDelegateReadout,
+  describeDetectReadout,
   describeOverlayStatus,
   DETECT_YIELD_MS,
   frameAtPlaybackTime,
+  LANDMARK_SMOOTH,
+  landmarkSmoothAlpha,
   nextDetectDelay,
   OVERLAY_MAX_DPR,
   overlayDevicePixelRatio,
@@ -499,7 +504,8 @@ assert(readShowTrackingPref(memory) === false, "tracking pref remembers off");
 
 assert(RECORD_SAMPLE_MS === 66, "recording still samples every 66ms for the BiLSTM");
 assert(CHIP_UPDATE_MS === 250, "status chip should throttle to ~4 Hz");
-assert(PREVIEW_DETECT_MAX_WIDTH === 480, "preview detect should use a smaller frame");
+assert(PREVIEW_DETECT_MAX_WIDTH === 320, "preview detect should use a ~320px frame");
+assert(LANDMARK_SMOOTH > 0 && LANDMARK_SMOOTH < 1, "live overlay should ease toward new detects");
 assert(nextDetectDelay(20, 66) === 66, "a fast detect should wait the sample budget");
 assert(
   nextDetectDelay(80, 66) === 80 + DETECT_YIELD_MS,
@@ -508,12 +514,64 @@ assert(
 assert(overlayDevicePixelRatio(3) === OVERLAY_MAX_DPR, "overlay DPR should cap");
 assert(overlayDevicePixelRatio(1) === 1, "1x displays should stay 1x");
 
+const snap = new Float32Array(POS_DIM);
+const appear = new Float32Array(POS_DIM);
+appear[0] = 0.8;
+appear[1] = 0.4;
+approachPackedFrame(snap, appear, 0.5);
+assert(
+  Math.abs(snap[0] - 0.8) < 1e-6 && Math.abs(snap[1] - 0.4) < 1e-6,
+  "hidden joints should snap onto a new detect",
+);
+const eased = new Float32Array(POS_DIM);
+eased[0] = 0.2;
+eased[1] = 0.2;
+approachPackedFrame(eased, appear, 0.5);
+assert(
+  Math.abs(eased[0] - 0.5) < 1e-6 && Math.abs(eased[1] - 0.3) < 1e-6,
+  "visible joints should lerp toward the newest detect",
+);
+assert(
+  Math.abs(landmarkSmoothAlpha(16.667) - LANDMARK_SMOOTH) < 1e-6,
+  "one display frame uses the base ease",
+);
+assert(
+  describeDelegateReadout("GPU", "GPU") === "GPU",
+  "matching delegates should collapse to one label",
+);
+assert(
+  describeDelegateReadout("GPU", "CPU") === "GPU/CPU",
+  "mixed delegates should stay visible",
+);
+assert(
+  describeDetectReadout({
+    detectFps: 12.2,
+    detectMs: 41.6,
+    poseDelegate: "GPU",
+    handDelegate: "GPU",
+    detectThread: "worker",
+  }) === "12 det · 42ms · GPU worker",
+  "dev readout should name the active delegate and thread",
+);
+
 const tracker = await readFile(
   path.join(ROOT, "src/hooks/use-landmark-tracker.ts"),
   "utf8",
 );
 const overlay = await readFile(
   path.join(ROOT, "src/components/landmark-overlay.tsx"),
+  "utf8",
+);
+const runtime = await readFile(
+  path.join(ROOT, "src/lib/landmark-runtime.ts"),
+  "utf8",
+);
+const worker = await readFile(
+  path.join(ROOT, "src/lib/landmark-detect.worker.ts"),
+  "utf8",
+);
+const workerClient = await readFile(
+  path.join(ROOT, "src/lib/landmark-worker-client.ts"),
   "utf8",
 );
 assert(tracker.includes("nextDetectDelay"), "tracker should skip detects when busy");
@@ -526,12 +584,41 @@ assert(
   tracker.includes("capturingRef.current) return video"),
   "recording should keep detecting on the full camera frame",
 );
+assert(
+  tracker.includes("LandmarkWorkerClient") && tracker.includes("workerDetectSupported"),
+  "tracker should prefer a detect worker",
+);
+assert(
+  tracker.includes("prepareLandmarkTrackers"),
+  "tracker should keep the main-thread MediaPipe fallback",
+);
 assert(overlay.includes("CHIP_UPDATE_MS"), "overlay chip should be throttled");
+assert(overlay.includes("approachPackedFrame"), "overlay should lerp live landmarks");
 assert(
   overlay.includes('process.env.NODE_ENV !== "production"'),
   "fps readout should stay off in production",
 );
 assert(studio.includes("getPerfStats"), "studio should pass detect timings to the overlay");
+assert(
+  runtime.includes('factory("GPU")') && runtime.includes('factory("CPU")'),
+  "both landmarkers should try GPU then fall back to CPU",
+);
+assert(
+  runtime.includes('runningMode: "VIDEO"'),
+  "pose and hands should stay in VIDEO running mode",
+);
+assert(
+  worker.includes("if (runtime) return runtime"),
+  "worker should reuse landmarkers instead of recreating them",
+);
+assert(
+  worker.includes("detectLandmarkSample") && workerClient.includes("createImageBitmap"),
+  "the worker should receive transferred ImageBitmap frames",
+);
+assert(
+  workerClient.includes("[bitmap]") && workerClient.includes("OffscreenCanvas"),
+  "worker frames should transfer ownership and require OffscreenCanvas",
+);
 
 console.log(
   JSON.stringify(
