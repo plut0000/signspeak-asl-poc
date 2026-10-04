@@ -30,15 +30,22 @@ function translateClip(video, landmarks, durationMs, quality):
   segments = segmentSigns(landmarks)
     # pause = both wrists slower than an adaptive threshold (0.3–0.6
     #   shoulder widths/s), or no hand tracked, for ≥ 400 ms
-    # motion runs between pauses, padded ~130 ms, hand-less edges trimmed
+    # motion shorter than ~600 ms is a twitch and is dropped
+    # surviving runs are padded ~280 ms; hand-less edges trimmed only if
+    #   a full sign remains; nearby pause-segments merge across ~180 ms gaps
     # runs over ~4 s → 2 s sliding windows, 1 s stride
     # every segment is 8–120 frames
   preds = [onnxBiLSTM(preprocess(segment)) for segment in segments]
-  confident = [p for p in preds if passesGates(p)]
-  if len(confident) * 2 <= len(segments):     # "most" = more than half
+  confident = [p for p in preds if passesSequenceGates(p)]
+    # sequence gates: conf ≥ 0.40, margin ≥ 0.08, entropy ≤ 0.88
+    # isolated-sign path still uses 0.55 / 0.15 / 0.75
+  if hitsCoverPhrase(confident, segments):    # majority, or ≥2 covering half
+    glosses = mergeConsecutiveDuplicates(confident)
+  else if hitsCoverPhrase(softTop1, segments) and len(softTop1) >= 2:
+    glosses = mergeConsecutiveDuplicates(softTop1)  # conf ≥ 0.28
+  else:
     return gemini.interpretAslVideo(video) + { fallbackReason }
 
-  glosses = mergeConsecutiveDuplicates(confident)   # HELLO HELLO NAME → HELLO NAME
   english = gemini.glossesToEnglish(glosses) or dictionaryEnglish(glosses)
   return { source: "dedicated", glosses, segments: { total, confident }, english }
 ```

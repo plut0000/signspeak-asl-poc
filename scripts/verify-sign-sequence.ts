@@ -7,6 +7,7 @@ import {
 import { predictGloss } from "../src/lib/asl-infer.ts";
 import { assessIsolatedSignBudget } from "../src/lib/asl-routing.ts";
 import {
+  enoughSequenceHits,
   MAX_SIGN_SEQUENCE_SEGMENTS,
   mergeConsecutiveGlosses,
   NO_SIGNS_REASON,
@@ -80,6 +81,21 @@ const loweredSegments = segmentSigns(lowered.packed, lowered.frames).segments;
 assert(
   spans(loweredSegments) === "12-42 52-82 92-122",
   `lowered hands: segments should match the signs exactly, got ${spans(loweredSegments)}`,
+);
+
+const twitch = buildClip([
+  { hold: 12 },
+  sign("kangaroo"),
+  { hold: 10 },
+  { move: 6 },
+  { hold: 10 },
+  sign("eggbeater"),
+  { hold: 12 },
+]);
+const twitchSegments = segmentSigns(twitch.packed, twitch.frames).segments;
+assert(
+  twitchSegments.length === 2,
+  `a 400 ms wrist twitch must not become its own sign, got ${spans(twitchSegments)}`,
 );
 
 const dropout = buildClip([
@@ -220,7 +236,7 @@ const minority = await readSignSequence({
   frames: held.frames,
   predict: scripted([
     { gloss: "HELLO" },
-    { gloss: "NAME", confidence: 0.4 },
+    { gloss: "NAME", confidence: 0.2 },
     { gloss: "WHAT1", confidence: 0.7, margin: 0.05 },
   ]).predict,
 });
@@ -251,7 +267,14 @@ const half = await readSignSequence({
     { gloss: "WHY", confidence: 0.3 },
   ]).predict,
 });
-assert(!half.ok && half.total === 4 && half.confident === 2, "exactly half confident is not most");
+assert(
+  half.ok && half.total === 4 && half.confident === 2,
+  "2 of 4 confident is enough for a multi-sign phrase",
+);
+assert(
+  half.ok && half.glosses.map((item) => item.gloss).join(" ") === "HELLO WHAT1",
+  "2 of 4 keeps the two clear glosses",
+);
 
 const merged = await readSignSequence({
   packed: splitClip.packed,
@@ -283,13 +306,35 @@ assert(
   "only consecutive duplicates merge",
 );
 
+assert(enoughSequenceHits(2, 3), "2 of 3 is a majority");
+assert(enoughSequenceHits(2, 4), "2 of 4 still covers half a phrase");
+assert(!enoughSequenceHits(1, 3), "1 of 3 is not enough");
+assert(!enoughSequenceHits(1, 4), "1 of 4 is not enough");
+assert(!enoughSequenceHits(0, 3), "zero hits are not enough");
+
+const soft = await readSignSequence({
+  packed: held.packed,
+  frames: held.frames,
+  predict: scripted([
+    { gloss: "HELLO", confidence: 0.32 },
+    { gloss: "NAME", confidence: 0.33 },
+    { gloss: "WHAT1", confidence: 0.31 },
+  ]).predict,
+});
+assert(
+  soft.ok &&
+    soft.confident === 0 &&
+    soft.glosses.map((item) => item.gloss).join(" ") === "HELLO NAME WHAT1",
+  "soft top-1 guesses still go to Gemini text cleanup",
+);
+
 const none = await readSignSequence({
   packed: held.packed,
   frames: held.frames,
   predict: scripted([
-    { gloss: "HELLO", confidence: 0.3 },
-    { gloss: "NAME", confidence: 0.3 },
-    { gloss: "WHAT1", confidence: 0.3 },
+    { gloss: "HELLO", confidence: 0.2 },
+    { gloss: "NAME", confidence: 0.2 },
+    { gloss: "WHAT1", confidence: 0.2 },
   ]).predict,
 });
 assert(
@@ -300,7 +345,7 @@ assert(
 const windowed = await readSignSequence({
   packed: continuous.packed,
   frames: continuous.frames,
-  predict: scripted(windows.map(() => ({ gloss: "HELLO", confidence: 0.3 }))).predict,
+  predict: scripted(windows.map(() => ({ gloss: "HELLO", confidence: 0.2 }))).predict,
 });
 assert(
   !windowed.ok && /parts of the clip/.test(windowed.reason),

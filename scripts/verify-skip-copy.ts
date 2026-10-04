@@ -20,6 +20,7 @@ import {
   friendlyGeminiError,
   GEMINI_REQUEST_DEADLINE_MS,
   GLOSS_CLEANUP_TIMEOUT_MS,
+  isGeminiVideoFormatError,
   MAX_GEMINI_CALLS_PER_REQUEST,
   VIDEO_REQUEST_TIMEOUT_MS,
 } from "../src/lib/gemini.ts";
@@ -29,7 +30,12 @@ import {
   resetInterpretRateLimit,
   takeInterpretSlot,
 } from "../src/lib/rate-limit.ts";
-import { sniffVideoMime } from "../src/lib/strip-video-audio.ts";
+import {
+  alternateVideoMime,
+  resolveVideoMime,
+  sniffVideoMime,
+} from "../src/lib/strip-video-audio.ts";
+import { CLIP_TOO_LARGE_ERROR } from "../src/lib/upload-limits.ts";
 import { buildClip } from "./sign-fixtures.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -196,8 +202,8 @@ async function sequenceReason(input: {
   return reading.reason;
 }
 
-const oneOfThree = await sequenceReason({ confidences: [0.9, 0.3, 0.3] });
-const noneOfThree = await sequenceReason({ confidences: [0.3, 0.3, 0.3] });
+const oneOfThree = await sequenceReason({ confidences: [0.9, 0.2, 0.2] });
+const noneOfThree = await sequenceReason({ confidences: [0.2, 0.2, 0.2] });
 const sparseReason = await sequenceReason({ frames: 30, durationMs: 12_000 });
 const over30Reason = await sequenceReason({ durationMs: 40_000 });
 
@@ -239,6 +245,10 @@ for (const reason of [oneOfThree, noneOfThree, NO_SIGNS_REASON, TOO_MANY_SEGMENT
   );
 }
 assert(/pause briefly between signs/.test(SEQUENCE_GEMINI_ERROR), "sequence error asks for pauses");
+assert(
+  !/Google/i.test(LONG_CLIP_GEMINI_ERROR) && !/Google/i.test(SEQUENCE_GEMINI_ERROR),
+  "user-facing errors should not blame Google",
+);
 assert(
   userFacingInterpretError({ error: LIGHTING, fallbackReason: over30Reason }) ===
     LONG_CLIP_GEMINI_ERROR,
@@ -301,8 +311,39 @@ assert(sniffVideoMime(webm) === "video/webm", "EBML is webm");
 const mp4 = Buffer.alloc(32, 0);
 mp4.write("ftyp", 4);
 assert(sniffVideoMime(mp4) === "video/mp4", "ftyp is mp4");
+const safariMp4 = Buffer.alloc(32, 0);
+safariMp4.write("wide", 4);
+safariMp4.write("ftyp", 12);
+assert(sniffVideoMime(safariMp4) === "video/mp4", "ftyp after a wide box is still mp4");
 assert(sniffVideoMime(Buffer.alloc(32, 1)) === null, "random bytes are not a video");
 assert(sniffVideoMime(Buffer.from("RIFF....WAVE")) === null, "WAV is not trusted as video");
+assert(
+  resolveVideoMime(Buffer.alloc(32, 1), "video/mp4;codecs=avc1") === "video/mp4",
+  "claimed mp4 is used when magic is unknown",
+);
+assert(
+  resolveVideoMime(Buffer.alloc(32, 1), "video/webm;codecs=vp9") === "video/webm",
+  "claimed webm is used when magic is unknown",
+);
+assert(
+  resolveVideoMime(webm, "video/mp4") === "video/webm",
+  "magic bytes win over a mismatched claimed type",
+);
+assert(alternateVideoMime("video/webm") === "video/mp4", "webm retries as mp4");
+assert(alternateVideoMime("video/mp4") === "video/webm", "mp4 retries as webm");
+assert(
+  isGeminiVideoFormatError("INVALID_ARGUMENT: Unsupported mime type video/webm"),
+  "Gemini mime errors are format errors",
+);
+assert(
+  isGeminiVideoFormatError("Could not process the video inline data"),
+  "Gemini process errors are format errors",
+);
+assert(!isGeminiVideoFormatError("503 unavailable"), "busy is not a format error");
+assert(
+  /too large to send/i.test(CLIP_TOO_LARGE_ERROR),
+  "oversize clips should say the recording is too large",
+);
 
 assert(!liveHandCoverageIsLow(4, 0), "too few frames should not nag yet");
 assert(liveHandCoverageIsLow(20, 0), "no hands should hint");
@@ -361,6 +402,14 @@ assert(
 );
 assert(studio.includes("Keep both hands in frame"), "recording UI should hint when hands are out of frame");
 assert(studio.includes("lowHandCoverage"), "hint should follow tracker hand coverage");
+assert(
+  studio.includes("RECORD_BITS_PER_SECOND") && studio.includes("MAX_VIDEO_BYTES"),
+  "recorder should cap bitrate and reject oversized blobs before upload",
+);
+assert(
+  gemini.includes("alternateVideoMime") && gemini.includes("isGeminiVideoFormatError"),
+  "Gemini video should retry once with the other container type",
+);
 
 console.log(
   JSON.stringify(

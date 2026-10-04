@@ -1,5 +1,29 @@
 # SignSpeak patch notes
 
+## Version 3.1.1 — Long clips reach Gemini; phrases are less brittle
+
+A real multi-sign webcam test after 3.1 could split into four pieces that
+all failed the isolated-sign gates, then fail Gemini video as well. This
+release keeps long clips small enough to upload, retries a wrong container
+type, and loosens only the several-signs path.
+
+**Uploads.** The camera records at 640×480 / 15 fps / 480 kbps so a 30-second
+clip stays under Vercel’s ~4.5 MB body limit. The server still rejects
+oversized bodies before `formData()`, and the studio refuses a blob that is
+already too large.
+
+**Gemini video.** Magic-byte sniffing no longer 400s an unknown container.
+The claimed MediaRecorder type is a hint; if Gemini rejects the mime, the
+same bytes are retried once as the other type (webm ↔ mp4).
+
+**Several signs.** Pause padding is ~280 ms. Wrist twitches under ~600 ms
+are dropped. Sequence gates are 40% / 0.08 / 0.88. Two clear signs out of
+four is enough; otherwise soft top-1 guesses can still go to Gemini text
+cleanup. Isolated-sign gates stay 55% / 0.15 / 0.75.
+
+**Errors.** Failed long-clip translation no longer mentions Google. One tip:
+pause between signs, or sign one word under ~8 seconds.
+
 ## Version 3.1 — Several signs in a row
 
 The dedicated model is still the **v3.0.1** 200-class RL BiLSTM. Weights and

@@ -13,10 +13,10 @@ export type SilentVideo = {
   stripped: boolean;
 };
 
-/** Ignore the client Content-Type; only these containers are sent to Gemini. */
-export function sniffVideoMime(
-  buffer: Buffer,
-): "video/webm" | "video/mp4" | null {
+export type VideoMime = "video/webm" | "video/mp4";
+
+/** Magic bytes first; MediaRecorder mp4 often puts `ftyp` after a `wide`/`free` box. */
+export function sniffVideoMime(buffer: Buffer): VideoMime | null {
   if (buffer.length < 12) return null;
   if (
     buffer[0] === 0x1a &&
@@ -26,8 +26,31 @@ export function sniffVideoMime(
   ) {
     return "video/webm";
   }
-  if (buffer.toString("ascii", 4, 8) === "ftyp") return "video/mp4";
+  const head = buffer.subarray(0, Math.min(buffer.length, 64)).toString("latin1");
+  if (
+    head.includes("ftyp") ||
+    head.includes("styp") ||
+    head.includes("moov") ||
+    head.includes("mdat")
+  ) {
+    return "video/mp4";
+  }
   return null;
+}
+
+/** Never block Gemini on a picky sniff — claimed type is a hint, then webm. */
+export function resolveVideoMime(buffer: Buffer, claimed?: string): VideoMime {
+  const sniffed = sniffVideoMime(buffer);
+  if (sniffed) return sniffed;
+  const lower = (claimed ?? "").toLowerCase();
+  if (lower.includes("mp4") || lower.includes("quicktime") || lower.includes("mpeg")) {
+    return "video/mp4";
+  }
+  return "video/webm";
+}
+
+export function alternateVideoMime(mime: VideoMime): VideoMime {
+  return mime === "video/mp4" ? "video/webm" : "video/mp4";
 }
 
 export function looksLikeMediaContainer(buffer: Buffer) {

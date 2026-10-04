@@ -89,12 +89,19 @@ export function assessIsolatedSignBudget(input: {
   return { ok: true };
 }
 
+export type DedicatedGates = {
+  threshold?: number;
+  margin?: number;
+  maxNormalizedEntropy?: number;
+};
+
 export function assessDedicatedPrediction(
   prediction: DedicatedDecisionInput,
+  gates: DedicatedGates = {},
 ): { ok: true } | { ok: false; reason: string } {
-  const threshold = getDedicatedThreshold();
-  const minMargin = getDedicatedMargin();
-  const maxEntropy = getDedicatedMaxNormalizedEntropy();
+  const threshold = gates.threshold ?? getDedicatedThreshold();
+  const minMargin = gates.margin ?? getDedicatedMargin();
+  const maxEntropy = gates.maxNormalizedEntropy ?? getDedicatedMaxNormalizedEntropy();
 
   if (prediction.confidence < threshold) {
     return {

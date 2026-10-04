@@ -4,6 +4,7 @@ import {
   friendlyGloss,
 } from "@/lib/asl-citizen";
 import { userFacingInterpretError } from "@/lib/dedicated-skip-copy";
+import { alternateVideoMime, type VideoMime } from "@/lib/strip-video-audio";
 import { GoogleGenAI, Type } from "@google/genai";
 import {
   POLITE_UNCLEAR_ENGLISH,
@@ -317,46 +318,48 @@ export async function interpretAslVideo(
   const models = getGeminiVideoModels();
   const ai = new GoogleGenAI({ apiKey: getGeminiApiKey() });
   let lastError: unknown;
+  let payload = { mimeType: input.mimeType, base64: input.base64 };
+  let retriedMime = false;
 
   // One pass of lite models only. SDK retries are disabled; busy models fail over quickly.
   for (const model of models) {
     if (!canSpendGeminiCall(budget, VIDEO_REQUEST_TIMEOUT_MS)) break;
     spendGeminiCall(budget);
     try {
-      const result = await generateInterpret(ai, model, input, ASL_PROMPT);
-      if (!shouldRetryLyricFocus(result)) {
-        return sanitizeInterpretResult(result);
-      }
-
-      try {
-        if (!canSpendGeminiCall(budget, VIDEO_REQUEST_TIMEOUT_MS)) {
-          return sanitizeInterpretResult(result);
-        }
-        spendGeminiCall(budget);
-        const followUp = await generateInterpret(
-          ai,
-          model,
-          input,
-          LYRIC_FOCUS_PROMPT,
-        );
-        if (!shouldRetryLyricFocus(followUp)) {
-          return sanitizeInterpretResult(followUp);
-        }
-        return sanitizeInterpretResult(pickBestInterpret(result, followUp));
-      } catch (followError) {
-        const message =
-          followError instanceof Error
-            ? followError.message
-            : String(followError);
-        console.warn(
-          "Lyric-focus follow-up failed; using first result.",
-          message,
-        );
-        return sanitizeInterpretResult(result);
-      }
+      return await interpretWithModel(ai, model, payload, budget);
     } catch (error) {
       lastError = error;
       const message = error instanceof Error ? error.message : String(error);
+      if (!retriedMime && isGeminiVideoFormatError(message)) {
+        retriedMime = true;
+        payload = {
+          ...payload,
+          mimeType: alternateVideoMime(asVideoMime(payload.mimeType)),
+        };
+        console.warn(
+          "Gemini rejected the video container type; retrying with the other type.",
+          message,
+        );
+        if (!canSpendGeminiCall(budget, VIDEO_REQUEST_TIMEOUT_MS)) break;
+        spendGeminiCall(budget);
+        try {
+          return await interpretWithModel(ai, model, payload, budget);
+        } catch (retryError) {
+          lastError = retryError;
+          const retryMessage =
+            retryError instanceof Error
+              ? retryError.message
+              : String(retryError);
+          if (!isGeminiBusyError(retryMessage)) {
+            throw retryError;
+          }
+          console.warn(
+            `Gemini model ${model} busy; trying next lite model…`,
+            retryMessage,
+          );
+          continue;
+        }
+      }
       if (!isGeminiBusyError(message)) {
         throw error;
       }
@@ -368,6 +371,40 @@ export async function interpretAslVideo(
   }
 
   throw lastError ?? new Error("Translation timed out.");
+}
+
+async function interpretWithModel(
+  ai: GoogleGenAI,
+  model: string,
+  payload: { mimeType: string; base64: string },
+  budget: GeminiBudget,
+): Promise<InterpretSuccess> {
+  const result = await generateInterpret(ai, model, payload, ASL_PROMPT);
+  if (!shouldRetryLyricFocus(result)) {
+    return sanitizeInterpretResult(result);
+  }
+
+  try {
+    if (!canSpendGeminiCall(budget, VIDEO_REQUEST_TIMEOUT_MS)) {
+      return sanitizeInterpretResult(result);
+    }
+    spendGeminiCall(budget);
+    const followUp = await generateInterpret(
+      ai,
+      model,
+      payload,
+      LYRIC_FOCUS_PROMPT,
+    );
+    if (!shouldRetryLyricFocus(followUp)) {
+      return sanitizeInterpretResult(followUp);
+    }
+    return sanitizeInterpretResult(pickBestInterpret(result, followUp));
+  } catch (followError) {
+    const message =
+      followError instanceof Error ? followError.message : String(followError);
+    console.warn("Lyric-focus follow-up failed; using first result.", message);
+    return sanitizeInterpretResult(result);
+  }
 }
 
 async function generateInterpret(
@@ -469,6 +506,29 @@ export function isGeminiBusyError(message: string) {
     lower.includes("try again later") ||
     lower.includes("overloaded")
   );
+}
+
+/** MediaRecorder webm/mp4 (incl. Safari) is sometimes tagged with the other container. */
+export function isGeminiVideoFormatError(message: string) {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes("invalid argument") ||
+    lower.includes("invalid_argument") ||
+    lower.includes("unsupported") ||
+    lower.includes("mime type") ||
+    lower.includes("mimetype") ||
+    lower.includes("invalid video") ||
+    lower.includes("could not process") ||
+    lower.includes("unable to process") ||
+    lower.includes("failed to parse") ||
+    lower.includes("video format") ||
+    lower.includes("bad request") ||
+    lower.includes("inline data")
+  );
+}
+
+function asVideoMime(mimeType: string): VideoMime {
+  return mimeType.toLowerCase().includes("mp4") ? "video/mp4" : "video/webm";
 }
 
 export function friendlyGeminiError(message: string, fallbackReason?: string) {

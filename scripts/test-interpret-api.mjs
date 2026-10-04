@@ -187,9 +187,9 @@ const cases = [
     expectNoDedicatedTop: true,
   },
   {
-    name: "reject-not-video",
+    name: "unknown-magic-still-reaches-gemini",
     videoBytes: Buffer.alloc(12_000, 2),
-    expectStatus: 400,
+    expectSource: "gemini",
   },
 ];
 
@@ -261,7 +261,9 @@ try {
 } catch {
   oversizedPayload = { error: oversized.body };
 }
-const oversizedOk = oversized.status === 413;
+const oversizedOk =
+  oversized.status === 413 &&
+  /too large to send/i.test(String(oversizedPayload.error ?? ""));
 results.push({
   name: "reject-oversize-before-formdata",
   ok: oversizedOk,

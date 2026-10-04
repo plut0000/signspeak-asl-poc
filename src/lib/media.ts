@@ -1,4 +1,11 @@
 import { MAX_ISOLATED_SIGN_MS } from "@/lib/asl-routing";
+import {
+  CLIP_TOO_LARGE_ERROR,
+  MAX_VIDEO_BYTES,
+  RECORD_BITS_PER_SECOND,
+} from "@/lib/upload-limits";
+
+export { CLIP_TOO_LARGE_ERROR, MAX_VIDEO_BYTES, RECORD_BITS_PER_SECOND };
 
 export const RECORD_SECONDS = 30;
 export const MIN_RECORD_MS = 1200;

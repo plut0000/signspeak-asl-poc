@@ -21,7 +21,15 @@ import {
   type GeminiBudget,
 } from "@/lib/gemini";
 import { clientIp, takeInterpretSlot } from "@/lib/rate-limit";
-import { sniffVideoMime, stripAudioTrack } from "@/lib/strip-video-audio";
+import {
+  resolveVideoMime,
+  stripAudioTrack,
+} from "@/lib/strip-video-audio";
+import {
+  CLIP_TOO_LARGE_ERROR,
+  MAX_UPLOAD_BYTES,
+  MAX_VIDEO_BYTES,
+} from "@/lib/upload-limits";
 import type { DedicatedTop, InterpretSuccess } from "@/lib/types";
 import { NextResponse } from "next/server";
 
@@ -29,8 +37,7 @@ export const runtime = "nodejs";
 export const maxDuration = 120;
 
 const MIN_BYTES = 8_000;
-/** Vercel serverless request body limit. Reject oversized Content-Length first. */
-export const MAX_BYTES = Math.floor(4.5 * 1024 * 1024);
+export const MAX_BYTES = MAX_UPLOAD_BYTES;
 const MAX_LANDMARK_BYTES = MAX_LANDMARK_FRAMES * POS_DIM * 4;
 
 type DedicatedAttempt =
@@ -47,10 +54,7 @@ export async function POST(request: Request) {
 
   const contentLength = Number(request.headers.get("content-length"));
   if (Number.isFinite(contentLength) && contentLength > MAX_BYTES) {
-    return NextResponse.json(
-      { error: "The clip is too large. Record a shorter phrase." },
-      { status: 413 },
-    );
+    return NextResponse.json({ error: CLIP_TOO_LARGE_ERROR }, { status: 413 });
   }
 
   let dedicatedAttempt: DedicatedAttempt | undefined;
@@ -84,19 +88,13 @@ export async function POST(request: Request) {
       );
     }
 
-    if (video.size > MAX_BYTES) {
-      return NextResponse.json(
-        { error: "The clip is too large. Record a shorter phrase." },
-        { status: 413 },
-      );
+    if (video.size > MAX_VIDEO_BYTES) {
+      return NextResponse.json({ error: CLIP_TOO_LARGE_ERROR }, { status: 413 });
     }
 
     const landmarks = form.get("landmarks");
     if (landmarks instanceof File && landmarks.size > MAX_LANDMARK_BYTES) {
-      return NextResponse.json(
-        { error: "The clip is too large. Record a shorter phrase." },
-        { status: 413 },
-      );
+      return NextResponse.json({ error: CLIP_TOO_LARGE_ERROR }, { status: 413 });
     }
 
     dedicatedAttempt = await tryDedicatedPath(form, budget);
@@ -105,16 +103,10 @@ export async function POST(request: Request) {
     }
 
     const buffer = Buffer.from(await video.arrayBuffer());
-    const mimeType = sniffVideoMime(buffer);
-    if (!mimeType) {
-      return NextResponse.json(
-        {
-          error: "Please upload a webcam video clip.",
-          ...dedicatedSkipFields(dedicatedAttempt),
-        },
-        { status: 400 },
-      );
-    }
+    const mimeType = resolveVideoMime(
+      buffer,
+      typeof video.type === "string" ? video.type : "",
+    );
 
     const silent = await stripAudioTrack({ buffer, mimeType });
     if (silent.stripped) {
