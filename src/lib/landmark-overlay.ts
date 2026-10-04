@@ -7,6 +7,7 @@ import {
   RIGHT_HAND_OFFSET,
   RIGHT_SHOULDER,
 } from "@/lib/asl-citizen";
+import type { LandmarkDelegates } from "@/lib/landmark-runtime";
 
 export const SHOW_TRACKING_STORAGE_KEY = "signspeak.showTracking";
 
@@ -79,7 +80,9 @@ export const PREVIEW_SAMPLE_MS = 80;
 export const DETECT_YIELD_MS = 16;
 export const CHIP_UPDATE_MS = 250;
 export const OVERLAY_MAX_DPR = 1.25;
-export const PREVIEW_DETECT_MAX_WIDTH = 480;
+export const PREVIEW_DETECT_MAX_WIDTH = 320;
+/** Approach the newest detect this much each 16.67ms display frame. */
+export const LANDMARK_SMOOTH = 0.42;
 
 const LEFT_HAND_CONNECTIONS: ReadonlyArray<readonly [number, number]> =
   HAND_CONNECTIONS.map(([a, b]) => [LEFT_HAND_OFFSET + a, LEFT_HAND_OFFSET + b]);
@@ -142,6 +145,69 @@ export function writeShowTrackingPref(
 
 export function describeOverlayStatus(status: OverlayStatus) {
   return `Hands: ${status.hands} · Body: ${status.body ? "tracked" : "not tracked"}`;
+}
+
+export type DetectReadout = {
+  detectFps: number;
+  detectMs: number;
+  poseDelegate?: LandmarkDelegates["pose"] | "";
+  handDelegate?: LandmarkDelegates["hands"] | "";
+  detectThread?: "worker" | "main" | "";
+};
+
+export function describeDelegateReadout(
+  poseDelegate?: string,
+  handDelegate?: string,
+) {
+  const pose = poseDelegate || "";
+  const hands = handDelegate || "";
+  if (pose && hands) return pose === hands ? pose : `${pose}/${hands}`;
+  return pose || hands;
+}
+
+export function describeDetectReadout(detect: DetectReadout) {
+  const delegate = describeDelegateReadout(
+    detect.poseDelegate,
+    detect.handDelegate,
+  );
+  const extras = [delegate, detect.detectThread || ""].filter(Boolean).join(" ");
+  return `${Math.round(detect.detectFps)} det · ${Math.round(detect.detectMs)}ms${extras ? ` · ${extras}` : ""}`;
+}
+
+/** Ease packed xyz toward the newest detect. Hidden joints snap; visible ones lerp. */
+export function approachPackedFrame(
+  dest: Float32Array,
+  target: Float32Array,
+  t: number,
+) {
+  const alpha = Number.isFinite(t) ? Math.min(1, Math.max(0, t)) : 1;
+  const count = Math.min(dest.length, target.length, POS_DIM);
+  for (let i = 0; i < count; i += COORDS) {
+    const tx = target[i];
+    const ty = target[i + 1];
+    const tz = target[i + 2];
+    const targetVis = jointVisible(tx, ty);
+    const destVis = jointVisible(dest[i], dest[i + 1]);
+    if (targetVis && destVis) {
+      dest[i] += (tx - dest[i]) * alpha;
+      dest[i + 1] += (ty - dest[i + 1]) * alpha;
+      dest[i + 2] += (tz - dest[i + 2]) * alpha;
+    } else if (targetVis) {
+      dest[i] = tx;
+      dest[i + 1] = ty;
+      dest[i + 2] = tz;
+    } else {
+      dest[i] = 0;
+      dest[i + 1] = 0;
+      dest[i + 2] = 0;
+    }
+  }
+  return dest;
+}
+
+export function landmarkSmoothAlpha(deltaMs: number) {
+  const frames = Number.isFinite(deltaMs) ? Math.max(0, deltaMs) / 16.667 : 1;
+  return 1 - Math.pow(1 - LANDMARK_SMOOTH, frames);
 }
 
 export function overlayStatusFromFrame(
