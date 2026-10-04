@@ -7,13 +7,24 @@ const INVALID_FRAMES = /frame count is invalid/i;
 const DISABLED = /disabled/i;
 const INFERENCE_FAILED = /inference failed/i;
 const LONG_CLIP = /longer than a single isolated sign|longer than a typical isolated sign/i;
+const SEQUENCE_TOO_LONG = /limit for several signs/i;
+const SEQUENCE_SPARSE = /too sparse to split/i;
+const SEQUENCE_NO_SIGNS = /no separate signs were found|too many short movements/i;
+const SEQUENCE_UNCLEAR = /^(.*?) for the dedicated model, so gemini video is used instead\.$/i;
 const LIGHTING_BLAME = /brighter lighting/i;
 
 export const LONG_CLIP_GEMINI_ERROR =
   "Google couldn’t read that longer clip. For the custom model, sign one word for under ~8 seconds.";
+export const SEQUENCE_GEMINI_ERROR =
+  "Google couldn’t read that longer clip. For the custom model, pause briefly between signs and keep both hands in frame.";
 
 export function isLongClipSkipReason(reason?: string) {
-  return LONG_CLIP.test(reason ?? "");
+  return LONG_CLIP.test(reason ?? "") || SEQUENCE_TOO_LONG.test(reason ?? "");
+}
+
+/** The custom model tried to read the clip as several signs and could not. */
+export function isSignSequenceSkipReason(reason?: string) {
+  return SEQUENCE_NO_SIGNS.test(reason ?? "") || SEQUENCE_UNCLEAR.test(reason ?? "");
 }
 
 /**
@@ -25,12 +36,9 @@ export function userFacingInterpretError(input: {
   error: string;
   fallbackReason?: string;
 }) {
-  if (
-    isLongClipSkipReason(input.fallbackReason) &&
-    LIGHTING_BLAME.test(input.error)
-  ) {
-    return LONG_CLIP_GEMINI_ERROR;
-  }
+  if (!LIGHTING_BLAME.test(input.error)) return input.error;
+  if (isLongClipSkipReason(input.fallbackReason)) return LONG_CLIP_GEMINI_ERROR;
+  if (isSignSequenceSkipReason(input.fallbackReason)) return SEQUENCE_GEMINI_ERROR;
   return input.error;
 }
 
@@ -63,6 +71,19 @@ export function explainDedicatedSkip(input: {
   }
   if (INFERENCE_FAILED.test(reason)) {
     return "Custom model skipped: It could not read this clip.";
+  }
+  if (SEQUENCE_TOO_LONG.test(reason)) {
+    return "Custom model skipped: This clip is longer than about 30 seconds.";
+  }
+  if (SEQUENCE_SPARSE.test(reason)) {
+    return "Custom model skipped: Not enough of the clip was tracked to split it into signs.";
+  }
+  if (SEQUENCE_NO_SIGNS.test(reason)) {
+    return "Custom model skipped: It could not find separate signs in this clip.";
+  }
+  const unclear = SEQUENCE_UNCLEAR.exec(reason);
+  if (unclear) {
+    return `Custom model skipped: ${unclear[1]}.`;
   }
   if (LONG_CLIP.test(reason)) {
     return "Custom model skipped: This clip is longer than one sign.";

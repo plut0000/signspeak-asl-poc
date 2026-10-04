@@ -2,20 +2,26 @@ import {
   assessLandmarkQuality,
   isDedicatedEnabled,
   MAX_LANDMARK_FRAMES,
+  POS_DIM,
 } from "@/lib/asl-citizen";
-import { predictGloss } from "@/lib/asl-infer";
+import { predictGloss, type DedicatedPrediction } from "@/lib/asl-infer";
 import {
   assessDedicatedPrediction,
   assessIsolatedSignBudget,
   parseDurationMs,
 } from "@/lib/asl-routing";
 import { decodeLandmarkBuffer, landmarksToFeatures } from "@/lib/asl-preprocess";
+import { isSignSequenceEnabled, readSignSequence } from "@/lib/asl-sequence";
 import {
+  createGeminiBudget,
   englishFromDedicatedGloss,
+  englishFromDedicatedGlosses,
   friendlyGeminiError,
   interpretAslVideo,
+  type GeminiBudget,
 } from "@/lib/gemini";
-import { stripAudioTrack } from "@/lib/strip-video-audio";
+import { clientIp, takeInterpretSlot } from "@/lib/rate-limit";
+import { sniffVideoMime, stripAudioTrack } from "@/lib/strip-video-audio";
 import type { DedicatedTop, InterpretSuccess } from "@/lib/types";
 import { NextResponse } from "next/server";
 
@@ -23,12 +29,32 @@ export const runtime = "nodejs";
 export const maxDuration = 120;
 
 const MIN_BYTES = 8_000;
-const MAX_BYTES = 18 * 1024 * 1024;
+/** Vercel serverless request body limit. Reject oversized Content-Length first. */
+export const MAX_BYTES = Math.floor(4.5 * 1024 * 1024);
+const MAX_LANDMARK_BYTES = MAX_LANDMARK_FRAMES * POS_DIM * 4;
 
-type DedicatedAttempt = Awaited<ReturnType<typeof tryDedicatedPath>>;
+type DedicatedAttempt =
+  | { ok: true; result: InterpretSuccess }
+  | { ok: false; reason: string; prediction?: DedicatedPrediction };
 
 export async function POST(request: Request) {
+  if (!takeInterpretSlot(clientIp(request))) {
+    return NextResponse.json(
+      { error: "Too many translation requests. Wait a few seconds and try again." },
+      { status: 429 },
+    );
+  }
+
+  const contentLength = Number(request.headers.get("content-length"));
+  if (Number.isFinite(contentLength) && contentLength > MAX_BYTES) {
+    return NextResponse.json(
+      { error: "The clip is too large. Record a shorter phrase." },
+      { status: 413 },
+    );
+  }
+
   let dedicatedAttempt: DedicatedAttempt | undefined;
+  const budget = createGeminiBudget();
   try {
     let form: FormData;
     try {
@@ -65,28 +91,42 @@ export async function POST(request: Request) {
       );
     }
 
-    const mimeType = video.type || "video/webm";
-    if (!mimeType.startsWith("video/")) {
+    const landmarks = form.get("landmarks");
+    if (landmarks instanceof File && landmarks.size > MAX_LANDMARK_BYTES) {
       return NextResponse.json(
-        { error: "Please upload a webcam video clip." },
-        { status: 400 },
+        { error: "The clip is too large. Record a shorter phrase." },
+        { status: 413 },
       );
     }
 
-    dedicatedAttempt = await tryDedicatedPath(form);
+    dedicatedAttempt = await tryDedicatedPath(form, budget);
     if (dedicatedAttempt.ok) {
       return NextResponse.json(dedicatedAttempt.result);
     }
 
     const buffer = Buffer.from(await video.arrayBuffer());
+    const mimeType = sniffVideoMime(buffer);
+    if (!mimeType) {
+      return NextResponse.json(
+        {
+          error: "Please upload a webcam video clip.",
+          ...dedicatedSkipFields(dedicatedAttempt),
+        },
+        { status: 400 },
+      );
+    }
+
     const silent = await stripAudioTrack({ buffer, mimeType });
     if (silent.stripped) {
       console.info("Removed audio track before Gemini video interpret.");
     }
-    const result = await interpretAslVideo({
-      mimeType: silent.mimeType,
-      base64: silent.buffer.toString("base64"),
-    });
+    const result = await interpretAslVideo(
+      {
+        mimeType: silent.mimeType,
+        base64: silent.buffer.toString("base64"),
+      },
+      budget,
+    );
 
     return NextResponse.json({
       ...result,
@@ -126,14 +166,10 @@ function dedicatedSkipFields(attempt: DedicatedAttempt | undefined): {
   };
 }
 
-async function tryDedicatedPath(form: FormData): Promise<
-  | { ok: true; result: InterpretSuccess }
-  | {
-      ok: false;
-      reason: string;
-      prediction?: Awaited<ReturnType<typeof predictGloss>>;
-    }
-> {
+async function tryDedicatedPath(
+  form: FormData,
+  budget: GeminiBudget,
+): Promise<DedicatedAttempt> {
   if (!isDedicatedEnabled()) {
     return { ok: false, reason: "Dedicated ASL model is disabled." };
   }
@@ -154,9 +190,11 @@ async function tryDedicatedPath(form: FormData): Promise<
     return { ok: false, reason: "Landmark frame count is invalid." };
   }
 
-  const budget = assessIsolatedSignBudget({ frames, durationMs });
-  if (!budget.ok) {
-    return { ok: false, reason: budget.reason };
+  const budgetCheck = assessIsolatedSignBudget({ frames, durationMs });
+  if (!budgetCheck.ok) {
+    return isSignSequenceEnabled()
+      ? trySignSequence({ landmarks, frames, durationMs, budget })
+      : { ok: false, reason: budgetCheck.reason };
   }
 
   const quality = assessLandmarkQuality({ frames, poseFrames, handFrames });
@@ -177,15 +215,78 @@ async function tryDedicatedPath(form: FormData): Promise<
       };
     }
 
-    const result = await englishFromDedicatedGloss({
-      gloss: prediction.gloss,
-      confidence: prediction.confidence,
-      top: prediction.top,
-    });
+    const result = await englishFromDedicatedGloss(
+      {
+        gloss: prediction.gloss,
+        confidence: prediction.confidence,
+        top: prediction.top,
+      },
+      budget,
+    );
     return { ok: true, result };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.warn("Dedicated ASL path failed; using Gemini video.", message);
+    return {
+      ok: false,
+      reason: "Dedicated model inference failed; using Gemini video.",
+    };
+  }
+}
+
+/** Clips longer than one isolated sign: read several signs in a row, or fall back to Gemini video. */
+async function trySignSequence(input: {
+  landmarks: File;
+  frames: number;
+  durationMs?: number;
+  budget: GeminiBudget;
+}): Promise<DedicatedAttempt> {
+  try {
+    const packed = decodeLandmarkBuffer(
+      await input.landmarks.arrayBuffer(),
+      input.frames,
+    );
+    const reading = await readSignSequence({
+      packed,
+      frames: input.frames,
+      durationMs: input.durationMs,
+      predict: predictGloss,
+    });
+    if (!reading.ok) {
+      return { ok: false, reason: reading.reason };
+    }
+
+    console.info(
+      `Sign sequence: ${reading.confident}/${reading.total} ${reading.method} segments → ${reading.glosses.map((item) => item.gloss).join(" ")}`,
+    );
+    const glosses = reading.glosses.map(({ gloss, glossLabel, confidence }) => ({
+      gloss,
+      glossLabel,
+      confidence,
+    }));
+    const [only] = reading.glosses;
+    const result =
+      reading.glosses.length === 1
+        ? await englishFromDedicatedGloss(
+            {
+              gloss: only.gloss,
+              confidence: only.confidence,
+              top: only.top,
+            },
+            input.budget,
+          )
+        : await englishFromDedicatedGlosses({ glosses }, input.budget);
+    return {
+      ok: true,
+      result: {
+        ...result,
+        glosses,
+        segments: { total: reading.total, confident: reading.confident },
+      },
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn("Sign sequence path failed; using Gemini video.", message);
     return {
       ok: false,
       reason: "Dedicated model inference failed; using Gemini video.",

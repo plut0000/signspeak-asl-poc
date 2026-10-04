@@ -4,10 +4,33 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { liveHandCoverageIsLow } from "../src/lib/asl-citizen.ts";
 import {
+  NO_SIGNS_REASON,
+  readSignSequence,
+  TOO_MANY_SEGMENTS_REASON,
+} from "../src/lib/asl-sequence.ts";
+import {
   explainDedicatedSkip,
   LONG_CLIP_GEMINI_ERROR,
+  SEQUENCE_GEMINI_ERROR,
   userFacingInterpretError,
 } from "../src/lib/dedicated-skip-copy.ts";
+import {
+  canSpendGeminiCall,
+  createGeminiBudget,
+  friendlyGeminiError,
+  GEMINI_REQUEST_DEADLINE_MS,
+  GLOSS_CLEANUP_TIMEOUT_MS,
+  MAX_GEMINI_CALLS_PER_REQUEST,
+  VIDEO_REQUEST_TIMEOUT_MS,
+} from "../src/lib/gemini.ts";
+import {
+  INTERPRET_RATE_LIMIT,
+  INTERPRET_RATE_WINDOW_MS,
+  resetInterpretRateLimit,
+  takeInterpretSlot,
+} from "../src/lib/rate-limit.ts";
+import { sniffVideoMime } from "../src/lib/strip-video-audio.ts";
+import { buildClip } from "./sign-fixtures.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -135,6 +158,151 @@ assert(
   }) === LONG_CLIP_GEMINI_ERROR,
   "length-skip wording should stay stable if applied twice",
 );
+
+const signs = buildClip([
+  { hold: 12 },
+  { sign: "kangaroo", frames: 30 },
+  { hold: 10 },
+  { move: 4 },
+  { sign: "eggbeater", frames: 30 },
+  { hold: 10 },
+  { move: 4 },
+  { sign: "measure", frames: 30 },
+  { hold: 12 },
+]);
+async function sequenceReason(input: {
+  confidences?: number[];
+  frames?: number;
+  durationMs?: number;
+}) {
+  const confidences = [...(input.confidences ?? [])];
+  const reading = await readSignSequence({
+    packed: signs.packed,
+    frames: input.frames ?? signs.frames,
+    durationMs: input.durationMs,
+    predict: async () => {
+      const confidence = confidences.shift() ?? 0.2;
+      return {
+        gloss: "HELLO",
+        glossLabel: "Hello",
+        confidence,
+        margin: confidence - 0.05,
+        normalizedEntropy: 0.2,
+        top: [],
+      };
+    },
+  });
+  assert(!reading.ok, "sequence fixture should fall back for the copy checks");
+  return reading.reason;
+}
+
+const oneOfThree = await sequenceReason({ confidences: [0.9, 0.3, 0.3] });
+const noneOfThree = await sequenceReason({ confidences: [0.3, 0.3, 0.3] });
+const sparseReason = await sequenceReason({ frames: 30, durationMs: 12_000 });
+const over30Reason = await sequenceReason({ durationMs: 40_000 });
+
+assert(
+  explainDedicatedSkip({ fallbackReason: oneOfThree }) ===
+    "Custom model skipped: Only 1 of 3 signs was clear enough.",
+  `sequence minority copy mismatch: ${explainDedicatedSkip({ fallbackReason: oneOfThree })}`,
+);
+assert(
+  explainDedicatedSkip({ fallbackReason: noneOfThree }) ===
+    "Custom model skipped: None of the 3 signs were clear enough.",
+  "sequence none-clear copy mismatch",
+);
+assert(
+  explainDedicatedSkip({ fallbackReason: NO_SIGNS_REASON }) ===
+    "Custom model skipped: It could not find separate signs in this clip.",
+  "no-signs copy mismatch",
+);
+assert(
+  explainDedicatedSkip({ fallbackReason: TOO_MANY_SEGMENTS_REASON }) ===
+    "Custom model skipped: It could not find separate signs in this clip.",
+  "too-many-segments copy mismatch",
+);
+assert(
+  explainDedicatedSkip({ fallbackReason: sparseReason }) ===
+    "Custom model skipped: Not enough of the clip was tracked to split it into signs.",
+  `sparse copy mismatch: ${sparseReason}`,
+);
+assert(
+  explainDedicatedSkip({ fallbackReason: over30Reason }) ===
+    "Custom model skipped: This clip is longer than about 30 seconds.",
+  `over-30s copy mismatch: ${over30Reason}`,
+);
+for (const reason of [oneOfThree, noneOfThree, NO_SIGNS_REASON, TOO_MANY_SEGMENTS_REASON]) {
+  assert(
+    userFacingInterpretError({ error: LIGHTING, fallbackReason: reason }) ===
+      SEQUENCE_GEMINI_ERROR,
+    `a sequence skip should ask for pauses instead of lighting: ${reason}`,
+  );
+}
+assert(/pause briefly between signs/.test(SEQUENCE_GEMINI_ERROR), "sequence error asks for pauses");
+assert(
+  userFacingInterpretError({ error: LIGHTING, fallbackReason: over30Reason }) ===
+    LONG_CLIP_GEMINI_ERROR,
+  "an over-30s skip is a length skip",
+);
+assert(
+  userFacingInterpretError({ error: LIGHTING, fallbackReason: sparseReason }) === LIGHTING,
+  "sparse tracking keeps the lighting wording",
+);
+assert(
+  userFacingInterpretError({ error: busy, fallbackReason: oneOfThree }) === busy,
+  "a specific Gemini error should stay ahead of the sequence sentence",
+);
+for (const reason of [oneOfThree, noneOfThree, sparseReason, over30Reason, NO_SIGNS_REASON]) {
+  assert(
+    !/softmax|entropy|margin|MediaPipe|BiLSTM/i.test(explainDedicatedSkip({ fallbackReason: reason }) ?? ""),
+    `sequence skip copy should stay plain: ${reason}`,
+  );
+}
+
+assert(
+  !/GEMINI_API_KEY|\.env\.local|GEMINI_MODEL/.test(
+    friendlyGeminiError("API key invalid: 401 permission denied"),
+  ),
+  "key errors should not name env files",
+);
+assert(
+  !/GEMINI_MODEL|\.env/.test(friendlyGeminiError("model not found 404")),
+  "missing-model errors should not name config",
+);
+
+resetInterpretRateLimit();
+const t0 = 1_000_000;
+for (let i = 0; i < INTERPRET_RATE_LIMIT; i++) {
+  assert(takeInterpretSlot("198.51.100.9", t0 + i), `rate-limit slot ${i}`);
+}
+assert(!takeInterpretSlot("198.51.100.9", t0 + INTERPRET_RATE_LIMIT), "11th request is limited");
+assert(takeInterpretSlot("198.51.100.10", t0), "a second IP keeps its own window");
+assert(
+  takeInterpretSlot("198.51.100.9", t0 + INTERPRET_RATE_WINDOW_MS + 1),
+  "the window should roll over",
+);
+
+const budget = createGeminiBudget(0);
+assert(canSpendGeminiCall(budget, VIDEO_REQUEST_TIMEOUT_MS, 0), "fresh budget can call Gemini");
+budget.calls = MAX_GEMINI_CALLS_PER_REQUEST;
+assert(!canSpendGeminiCall(budget, GLOSS_CLEANUP_TIMEOUT_MS, 0), "call cap is per request");
+budget.calls = 0;
+assert(
+  !canSpendGeminiCall(budget, VIDEO_REQUEST_TIMEOUT_MS, GEMINI_REQUEST_DEADLINE_MS - 1_000),
+  "a late video call should not start under the 120 s function limit",
+);
+
+const webm = Buffer.alloc(32, 1);
+webm[0] = 0x1a;
+webm[1] = 0x45;
+webm[2] = 0xdf;
+webm[3] = 0xa3;
+assert(sniffVideoMime(webm) === "video/webm", "EBML is webm");
+const mp4 = Buffer.alloc(32, 0);
+mp4.write("ftyp", 4);
+assert(sniffVideoMime(mp4) === "video/mp4", "ftyp is mp4");
+assert(sniffVideoMime(Buffer.alloc(32, 1)) === null, "random bytes are not a video");
+assert(sniffVideoMime(Buffer.from("RIFF....WAVE")) === null, "WAV is not trusted as video");
 
 assert(!liveHandCoverageIsLow(4, 0), "too few frames should not nag yet");
 assert(liveHandCoverageIsLow(20, 0), "no hands should hint");

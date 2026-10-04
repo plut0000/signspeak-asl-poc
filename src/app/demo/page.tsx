@@ -28,9 +28,10 @@ export default function DemoPage() {
               frame. For the dedicated model, sign{" "}
               <span className="font-medium text-foreground">one isolated
               sign</span>{" "}
-              from the 200-word vocab (hello, lunch, Coca-Cola, take off…). Songs and
-              other long clips use Gemini video instead. Unmute so the English
-              can be spoken automatically.
+              from the 200-word vocab, or several with a short pause after
+              each (hello, lunch, Coca-Cola…). Songs and fluent conversation
+              use Gemini video instead. Unmute so the English can be spoken
+              automatically.
             </p>
           </div>
           <Link

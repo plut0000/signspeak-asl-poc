@@ -290,6 +290,10 @@ export function SignStudio({ mode }: { mode: AppMode }) {
 
   const busy = session === "recording" || session === "processing";
   const cameraReady = cameraStatus === "ready";
+  const signSequence =
+    result?.glosses && result.glosses.length > 1
+      ? result.glosses.map((item) => (item.glossLabel || item.gloss).toUpperCase())
+      : null;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
@@ -316,8 +320,9 @@ export function SignStudio({ mode }: { mode: AppMode }) {
             <div>
               <CardTitle>Camera</CardTitle>
               <CardDescription>
-                Face the camera, sign a short phrase, then stop. Recording
-                auto-stops after {RECORD_SECONDS} seconds.
+                Face the camera and sign one word, or a few words with a short
+                pause after each, then stop. Recording auto-stops after{" "}
+                {RECORD_SECONDS} seconds.
               </CardDescription>
             </div>
             <div className="flex flex-col items-end gap-1">
@@ -389,22 +394,23 @@ export function SignStudio({ mode }: { mode: AppMode }) {
                 <LoaderCircle className="size-7 animate-spin text-primary" />
                 <p className="text-sm font-medium">
                   {processingLongClip
-                    ? "Translating the signed song or phrase…"
+                    ? "Reading the signs in order…"
                     : "Reading the signing…"}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {processingLongClip
-                    ? "Long clips use Gemini on silent video — this can take a few seconds"
-                    : "Short isolated signs use the dedicated model; longer clips use Gemini video"}
+                    ? "Long clips are split into single signs first; unclear ones use Gemini video, which can take a few seconds"
+                    : "Short isolated signs use the dedicated model; longer clips are split into signs"}
                 </p>
               </div>
             ) : null}
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
             Preview is mirrored so it feels like a mirror. Landmarks and Gemini
-            use the unmirrored camera stream. Sign one isolated vocab sign for
-            the dedicated model. Songs, conversation, and other long clips skip
-            that model and use Gemini video.
+            use the unmirrored camera stream. For the dedicated model, sign one
+            vocab sign, or several with a half-second pause between them (hold
+            still or lower your hands). Songs and conversation fall back to
+            Gemini video.
           </p>
         </CardContent>
         <CardFooter className="flex flex-col gap-2 sm:flex-row">
@@ -468,6 +474,9 @@ export function SignStudio({ mode }: { mode: AppMode }) {
                     <>
                       <Badge>Dedicated model</Badge>
                       <Badge variant="outline">{DEDICATED_MODEL_LABEL}</Badge>
+                      {signSequence ? (
+                        <Badge variant="secondary">Several signs</Badge>
+                      ) : null}
                     </>
                   ) : result.mock ? (
                     <Badge variant="outline">Mock sample</Badge>
@@ -481,7 +490,28 @@ export function SignStudio({ mode }: { mode: AppMode }) {
                     <Badge variant="secondary">Signing unclear</Badge>
                   ) : null}
                 </div>
-                {result.glossLabel || result.gloss ? (
+                {signSequence ? (
+                  <div className="space-y-1">
+                    <p
+                      className="text-sm font-medium tracking-wide text-foreground"
+                      aria-label={`Signs read: ${signSequence.join(", ")}`}
+                    >
+                      {signSequence.join(" · ")}
+                    </p>
+                    {result.segments &&
+                    result.segments.confident < result.segments.total ? (
+                      <p className="text-xs text-muted-foreground">
+                        Skipped{" "}
+                        {result.segments.total - result.segments.confident}{" "}
+                        unclear{" "}
+                        {result.segments.total - result.segments.confident === 1
+                          ? "part"
+                          : "parts"}{" "}
+                        of the clip
+                      </p>
+                    ) : null}
+                  </div>
+                ) : result.glossLabel || result.gloss ? (
                   <p className="text-sm text-muted-foreground">
                     Gloss{" "}
                     <span className="font-medium text-foreground">

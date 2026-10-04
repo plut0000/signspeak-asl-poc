@@ -10,19 +10,20 @@ export type DedicatedTop = {
 
 export type StatusResponse = {
   mode: AppMode;
-  model: string;
   dedicated: {
     enabled: boolean;
-    threshold: number;
-    margin?: number;
-    maxIsolatedMs?: number;
-    maxIsolatedFrames?: number;
     classes: number;
-    architecture: string;
     version: string;
     variant: string;
     label: string;
   };
+};
+
+export type SignSegmentCounts = {
+  /** Single-sign segments found in a clip longer than one isolated sign. */
+  total: number;
+  /** Segments that cleared the dedicated-model gates. */
+  confident: number;
 };
 
 export type InterpretSuccess = {
@@ -34,6 +35,9 @@ export type InterpretSuccess = {
   gloss?: string;
   glossLabel?: string;
   confidence?: number;
+  /** Several signs in a row, in signed order, after merging repeats. */
+  glosses?: DedicatedTop[];
+  segments?: SignSegmentCounts;
   fallbackReason?: string;
   dedicatedTop?: DedicatedTop;
 };

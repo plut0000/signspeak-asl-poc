@@ -302,6 +302,31 @@ export function englishFromGloss(gloss: string) {
   return FALLBACK_ENGLISH[gloss] ?? `${friendlyGloss(gloss)}.`;
 }
 
+const PROPER_GLOSSES = new Set([
+  "CHRISTMAS1",
+  "HALLOWEEN1",
+  "EUROPE",
+  "EGYPT",
+  "GREECE",
+  "SWITZERLAND",
+  "COCACOLA",
+  "CALLTTY",
+]);
+
+/** Dictionary English for several glosses in signed order: HELLO, NAME, WHAT1 → "Hello name what?" */
+export function englishFromGlosses(glosses: string[]) {
+  if (glosses.length <= 1) return glosses[0] ? englishFromGloss(glosses[0]) : "";
+  const words = glosses.map((gloss, index) => {
+    const label = friendlyGloss(gloss);
+    return index === 0 || PROPER_GLOSSES.has(gloss) ? label : label.toLowerCase();
+  });
+  const question = englishFromGloss(glosses[glosses.length - 1]).endsWith("?");
+  return `${words.join(" ")}${question ? "?" : "."}`;
+}
+
+export const HANDS_MISSING_REASON =
+  "Hands were missing or poorly tracked in too many frames.";
+
 export type LandmarkQuality = {
   frames: number;
   poseFrames: number;
@@ -331,7 +356,7 @@ export function assessLandmarkQuality(input: {
       frames,
       poseFrames,
       handFrames,
-      reason: "Hands were missing or poorly tracked in too many frames.",
+      reason: HANDS_MISSING_REASON,
     };
   }
   return { frames, poseFrames, handFrames, reason: "" };

@@ -1,14 +1,14 @@
-export const DEMO_VERSION = "3.0.1";
+export const DEMO_VERSION = "3.1.0";
 
 export const PATCH_NOTES = {
   version: DEMO_VERSION,
-  title: "What's new in v3.0.1",
+  title: "What's new in v3.1",
   summary:
-    "Extra RL fine-tuning lifts the same 200-sign isolated model from ~89.7% to ~90.3% test top-1. Top-5 stays around 98.1%. Gemini visual-only song translation, mute soft-fail, and skip-reason errors stay. A slow one-word clip can use the custom model for up to ~8 seconds.",
+    "The same 200-sign v3.0.1 BiLSTM can now read several signs in a row. Pause about half a second between words; the glosses show as HELLO · NAME · WHAT above the English sentence. One-word clips are unchanged. Songs and unclear phrases still use Gemini video.",
   highlights: [
-    "Still 200 isolated signs. Friendly labels are unchanged (LUNCH1 → Lunch, COCACOLA → Coca-Cola, TAKEOFF1 → Take off).",
-    "Held-out test: the shipped v3.0 RL checkpoint was ~89.7% top-1. Extra RL reaches ~90.3% (90.29%). Supervised training started at ~87.3%. Top-5 is ~98.1%.",
-    "Isolated-sign gates: clips longer than ~8 seconds or 120 landmark frames skip BiLSTM and use Gemini video. A slightly slow one-word demo still uses the custom model. Dedicated path still needs confidence ≥ 55%, margin ≥ 0.15, and entropy ≤ 0.75.",
-    "Gemini visual-only from v2.1.3.1 stays: mic off, audio stripped, lyric-first silent-clip prompts, no gang-sign or screen-recording lectures, flash-lite long-clip path. Mute failures still soft-fail, and skipped dedicated predictions still explain why.",
+    "Clips up to ~8 seconds / 120 frames stay on the single-sign path. Longer clips (up to ~30 seconds / 900 frames) are split at still wrists or lowered hands. Each piece uses the same 55% / 0.15 / 0.75 gates. Consecutive duplicate glosses merge.",
+    "When more than half the pieces are confident, Gemini only cleans the gloss list into English (dictionary English if there is no key). Otherwise the clip uses Gemini video, as before.",
+    "Model weights and the 200-word list are unchanged (v3.0.1 RL, ~90.3% test top-1). The studio shows a Several signs badge and the gloss sequence.",
+    "Interpret uploads are capped at Vercel’s ~4.5 MB body limit, rate-limited per IP, and checked by file magic instead of the client MIME type. Gemini fallbacks stop before the 120-second function limit.",
   ],
 } as const;

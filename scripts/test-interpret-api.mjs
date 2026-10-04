@@ -1,9 +1,7 @@
 #!/usr/bin/env node
-import { writeFile, unlink } from "node:fs/promises";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import http from "node:http";
+import { buildClip, countHandFrames, SIGN_GLOSSES } from "./sign-fixtures.mjs";
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const BASE = process.env.SIGN_SPEAK_URL ?? "http://127.0.0.1:43127";
 
 function makeLandmarks({ frames, withHands }) {
@@ -28,37 +26,43 @@ function makeLandmarks({ frames, withHands }) {
   return packed;
 }
 
-async function postInterpret({
-  name,
-  frames,
-  withHands,
-  includeLandmarks,
-  durationMs,
-}) {
-  const videoPath = path.join(ROOT, `.tmp-${name}.webm`);
-  const landPath = path.join(ROOT, `.tmp-${name}.bin`);
-  await writeFile(videoPath, Buffer.alloc(12_000, 1));
+const pause = [{ hold: 10, jitter: 0.001 }, { move: 4 }];
+const sign = (name, frames = 30) => ({ sign: name, frames });
+const threeSigns = (names, pauseParts = pause) => [
+  { hold: 12 },
+  sign(names[0]),
+  ...pauseParts,
+  sign(names[1]),
+  ...pauseParts,
+  sign(names[2]),
+  { hold: 12 },
+];
+
+function dummyWebm() {
+  const buffer = Buffer.alloc(12_000, 1);
+  buffer[0] = 0x1a;
+  buffer[1] = 0x45;
+  buffer[2] = 0xdf;
+  buffer[3] = 0xa3;
+  return buffer;
+}
+
+async function postInterpret({ name, landmarks, durationMs, videoBytes, videoType }) {
   const form = new FormData();
   form.append(
     "video",
-    new Blob([await (await import("node:fs/promises")).readFile(videoPath)], {
-      type: "video/webm",
-    }),
+    new Blob([videoBytes ?? dummyWebm()], { type: videoType ?? "video/webm" }),
     "signing.webm",
   );
-  if (includeLandmarks) {
-    const packed = makeLandmarks({ frames, withHands });
-    await writeFile(landPath, Buffer.from(packed.buffer));
+  if (landmarks) {
     form.append(
       "landmarks",
-      new Blob([await (await import("node:fs/promises")).readFile(landPath)], {
-        type: "application/octet-stream",
-      }),
+      new Blob([Buffer.from(landmarks.packed.buffer)], { type: "application/octet-stream" }),
       "landmarks.bin",
     );
-    form.append("landmarkFrames", String(frames));
-    form.append("poseFrames", String(frames));
-    form.append("handFrames", String(withHands ? frames : 0));
+    form.append("landmarkFrames", String(landmarks.frames));
+    form.append("poseFrames", String(landmarks.frames));
+    form.append("handFrames", String(countHandFrames(landmarks.packed, landmarks.frames)));
   }
   if (durationMs != null) {
     form.append("durationMs", String(durationMs));
@@ -67,89 +71,206 @@ async function postInterpret({
   const response = await fetch(`${BASE}/api/interpret`, {
     method: "POST",
     body: form,
+    headers: { "x-forwarded-for": `198.51.100.${(hash(name) % 250) + 1}` },
   });
-  const payload = await response.json();
-  await unlink(videoPath).catch(() => {});
-  await unlink(landPath).catch(() => {});
-  return { status: response.status, payload };
+  return { status: response.status, payload: await response.json() };
 }
+
+function hash(text) {
+  let value = 0;
+  for (const char of text) value = (value * 31 + char.charCodeAt(0)) >>> 0;
+  return value;
+}
+
+function clip(parts, frameMs = 66) {
+  const built = buildClip(parts);
+  return { landmarks: built, durationMs: Math.round(built.frames * frameMs) };
+}
+
+const SEQUENCE = [SIGN_GLOSSES.kangaroo, SIGN_GLOSSES.eggbeater, SIGN_GLOSSES.measure];
 
 const cases = [
   {
     name: "dedicated-confident",
-    includeLandmarks: true,
-    frames: 30,
-    withHands: true,
+    landmarks: { packed: makeLandmarks({ frames: 30, withHands: true }), frames: 30 },
     durationMs: 2_500,
     expectSource: "dedicated",
+    expectNoGlosses: true,
+    videoType: "text/plain",
   },
   {
     name: "fallback-no-hands",
-    includeLandmarks: true,
-    frames: 30,
-    withHands: false,
+    landmarks: { packed: makeLandmarks({ frames: 30, withHands: false }), frames: 30 },
     expectSource: "gemini",
   },
   {
     name: "fallback-no-landmarks",
-    includeLandmarks: false,
-    frames: 0,
-    withHands: false,
     expectSource: "gemini",
   },
   {
+    // One slow sweep over 13 s never moves fast enough to count as a sign.
     name: "fallback-long-clip",
-    includeLandmarks: true,
-    frames: 200,
-    withHands: true,
+    landmarks: { packed: makeLandmarks({ frames: 200, withHands: true }), frames: 200 },
     expectSource: "gemini",
-    expectFallback: /longer than a typical isolated sign/,
+    expectFallback: /No separate signs were found/,
     expectNoDedicatedTop: true,
   },
   {
     name: "fallback-long-duration",
-    includeLandmarks: true,
-    frames: 30,
-    withHands: true,
+    landmarks: { packed: makeLandmarks({ frames: 30, withHands: true }), frames: 30 },
     durationMs: 12_000,
     expectSource: "gemini",
-    expectFallback: /longer than a single isolated sign/,
+    expectFallback: /too sparse to split this 12s clip/,
     expectNoDedicatedTop: true,
+  },
+  {
+    name: "single-sign-path-keeps-short-clips",
+    ...clip([
+      { hold: 6 },
+      sign("kangaroo"),
+      { hold: 8 },
+      sign("eggbeater"),
+      { hold: 8 },
+      sign("measure"),
+      { hold: 6 },
+    ]),
+    expectNoGlosses: true,
+  },
+  {
+    name: "sequence-three-signs",
+    ...clip(threeSigns(["kangaroo", "eggbeater", "measure"])),
+    expectSource: "dedicated",
+    expectGlosses: SEQUENCE,
+    expectSegments: { total: 3, confident: 3 },
+  },
+  {
+    name: "sequence-lowered-hands",
+    ...clip(threeSigns(["kangaroo", "eggbeater", "measure"], [{ handsDown: 10 }])),
+    expectSource: "dedicated",
+    expectGlosses: SEQUENCE,
+  },
+  {
+    name: "sequence-repeat-merged",
+    ...clip(threeSigns(["kangaroo", "kangaroo", "eggbeater"])),
+    expectSource: "dedicated",
+    expectGlosses: [SIGN_GLOSSES.kangaroo, SIGN_GLOSSES.eggbeater],
+    expectSegments: { total: 3, confident: 3 },
+  },
+  {
+    name: "sequence-one-unclear",
+    ...clip(threeSigns(["kangaroo", "eggbeater", "unclearSweep"])),
+    expectSource: "dedicated",
+    expectGlosses: [SIGN_GLOSSES.kangaroo, SIGN_GLOSSES.eggbeater],
+    expectSegments: { total: 3, confident: 2 },
+  },
+  {
+    name: "sequence-mostly-unclear",
+    ...clip(threeSigns(["kangaroo", "unclearSweep", "unclearShake"])),
+    expectSource: "gemini",
+    expectFallback: /^Only 1 of 3 signs was clear enough for the dedicated model/,
+    expectNoDedicatedTop: true,
+    expectNoGlosses: true,
+  },
+  {
+    name: "sequence-one-sign-in-long-clip",
+    ...clip([{ hold: 70, jitter: 0.001 }, sign("kangaroo"), { hold: 90, jitter: 0.001 }]),
+    expectSource: "dedicated",
+    expectGloss: SIGN_GLOSSES.kangaroo,
+    expectGlosses: [SIGN_GLOSSES.kangaroo],
+  },
+  {
+    name: "sequence-over-30s",
+    landmarks: buildClip(threeSigns(["kangaroo", "eggbeater", "measure"])),
+    durationMs: 40_000,
+    expectSource: "gemini",
+    expectFallback: /longer than the ~30s limit for several signs/,
+    expectNoDedicatedTop: true,
+  },
+  {
+    name: "reject-not-video",
+    videoBytes: Buffer.alloc(12_000, 2),
+    expectStatus: 400,
   },
 ];
 
 const results = [];
 for (const testCase of cases) {
   const result = await postInterpret(testCase);
-  const source = result.payload.source;
-  const fallbackReason = result.payload.fallbackReason ?? "";
-  const fallbackOk = testCase.expectFallback
-    ? testCase.expectFallback.test(fallbackReason)
-    : true;
-  const dedicatedTopOk = testCase.expectNoDedicatedTop
-    ? !result.payload.dedicatedTop
-    : true;
-  const ok =
-    result.status === 200 &&
-    source === testCase.expectSource &&
-    fallbackOk &&
-    dedicatedTopOk;
+  const { payload } = result;
+  const glosses = payload.glosses?.map((item) => item.gloss);
+  const checks = {
+    status: result.status === (testCase.expectStatus ?? 200),
+    source: !testCase.expectSource || payload.source === testCase.expectSource,
+    fallback: !testCase.expectFallback || testCase.expectFallback.test(payload.fallbackReason ?? ""),
+    dedicatedTop: !testCase.expectNoDedicatedTop || !payload.dedicatedTop,
+    gloss: !testCase.expectGloss || payload.gloss === testCase.expectGloss,
+    glosses: !testCase.expectGlosses || glosses?.join(" ") === testCase.expectGlosses.join(" "),
+    noGlosses: !testCase.expectNoGlosses || (!payload.glosses && !payload.segments),
+    segments:
+      !testCase.expectSegments ||
+      JSON.stringify(payload.segments) === JSON.stringify(testCase.expectSegments),
+  };
+  const ok = Object.values(checks).every(Boolean);
   results.push({
     name: testCase.name,
     ok,
     status: result.status,
-    source,
-    gloss: result.payload.gloss,
-    confidence: result.payload.confidence,
-    fallbackReason,
-    dedicatedTop: result.payload.dedicatedTop,
-    english: result.payload.english,
-    mock: result.payload.mock,
+    source: payload.source,
+    gloss: payload.gloss,
+    glosses,
+    segments: payload.segments,
+    confidence: payload.confidence,
+    fallbackReason: payload.fallbackReason ?? "",
+    dedicatedTop: payload.dedicatedTop,
+    english: payload.english,
+    mock: payload.mock,
   });
   if (!ok) {
-    console.error(testCase.name, result);
+    console.error(testCase.name, checks, result);
     process.exitCode = 1;
   }
+}
+
+const oversized = await new Promise((resolve, reject) => {
+  const url = new URL(`${BASE}/api/interpret`);
+  const req = http.request(
+    {
+      hostname: url.hostname,
+      port: url.port,
+      path: url.pathname,
+      method: "POST",
+      headers: {
+        "content-length": String(5 * 1024 * 1024),
+        "x-forwarded-for": "198.51.100.250",
+      },
+    },
+    (res) => {
+      let data = "";
+      res.on("data", (chunk) => {
+        data += chunk;
+      });
+      res.on("end", () => resolve({ status: res.statusCode, body: data }));
+    },
+  );
+  req.on("error", reject);
+  req.end("x");
+});
+let oversizedPayload = {};
+try {
+  oversizedPayload = JSON.parse(oversized.body);
+} catch {
+  oversizedPayload = { error: oversized.body };
+}
+const oversizedOk = oversized.status === 413;
+results.push({
+  name: "reject-oversize-before-formdata",
+  ok: oversizedOk,
+  status: oversized.status,
+  error: oversizedPayload.error,
+});
+if (!oversizedOk) {
+  console.error("reject-oversize-before-formdata", oversized.status, oversizedPayload);
+  process.exitCode = 1;
 }
 
 console.log(JSON.stringify(results, null, 2));
