@@ -57,11 +57,25 @@ export async function prepareLandmarkTrackers() {
   return loadPromise;
 }
 
+export type LandmarkSource = HTMLVideoElement | HTMLCanvasElement;
+
+function sourceSize(source: LandmarkSource) {
+  if (source instanceof HTMLVideoElement) {
+    return {
+      ready: source.readyState >= 2,
+      width: source.videoWidth,
+      height: source.videoHeight,
+    };
+  }
+  return { ready: true, width: source.width, height: source.height };
+}
+
 export function sampleLandmarkFrame(
   landmarkers: Landmarkers,
-  video: HTMLVideoElement,
+  source: LandmarkSource,
 ): LandmarkSample | null {
-  if (video.readyState < 2 || video.videoWidth < 8 || video.videoHeight < 8) {
+  const size = sourceSize(source);
+  if (!size.ready || size.width < 8 || size.height < 8) {
     return null;
   }
 
@@ -69,8 +83,8 @@ export function sampleLandmarkFrame(
   if (timestamp <= lastTimestamp) timestamp = lastTimestamp + 1;
   lastTimestamp = timestamp;
 
-  const poseResult = landmarkers.pose.detectForVideo(video, timestamp);
-  const handResult = landmarkers.hands.detectForVideo(video, timestamp);
+  const poseResult = landmarkers.pose.detectForVideo(source, timestamp);
+  const handResult = landmarkers.hands.detectForVideo(source, timestamp);
   const pose = poseResult.landmarks[0];
   if (!pose || pose.length < POSE_LANDMARKS) {
     return null;

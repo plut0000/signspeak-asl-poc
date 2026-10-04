@@ -71,6 +71,41 @@ const POSE_CONNECTIONS: ReadonlyArray<readonly [number, number]> = [
 
 const SAMPLE_INTERVAL_S = 66 / 1000;
 
+/** BiLSTM capture cadence — keep this interval during recording. */
+export const RECORD_SAMPLE_MS = 66;
+/** Preview can wait a bit longer so inference does not starve painting. */
+export const PREVIEW_SAMPLE_MS = 80;
+/** Always leave at least one display frame after a detect. */
+export const DETECT_YIELD_MS = 16;
+export const CHIP_UPDATE_MS = 250;
+export const OVERLAY_MAX_DPR = 1.25;
+export const PREVIEW_DETECT_MAX_WIDTH = 480;
+
+const LEFT_HAND_CONNECTIONS: ReadonlyArray<readonly [number, number]> =
+  HAND_CONNECTIONS.map(([a, b]) => [LEFT_HAND_OFFSET + a, LEFT_HAND_OFFSET + b]);
+const RIGHT_HAND_CONNECTIONS: ReadonlyArray<readonly [number, number]> =
+  HAND_CONNECTIONS.map(([a, b]) => [RIGHT_HAND_OFFSET + a, RIGHT_HAND_OFFSET + b]);
+const LEFT_HAND_POINTS = Array.from(
+  { length: HAND_LANDMARKS },
+  (_, i) => LEFT_HAND_OFFSET + i,
+);
+const RIGHT_HAND_POINTS = Array.from(
+  { length: HAND_LANDMARKS },
+  (_, i) => RIGHT_HAND_OFFSET + i,
+);
+
+/** How long to wait before the next detect so a slow infer cannot pile up. */
+export function nextDetectDelay(elapsedMs: number, budgetMs: number) {
+  const elapsed = Number.isFinite(elapsedMs) && elapsedMs > 0 ? elapsedMs : 0;
+  const budget = Number.isFinite(budgetMs) && budgetMs > 0 ? budgetMs : RECORD_SAMPLE_MS;
+  return Math.max(budget, Math.ceil(elapsed) + DETECT_YIELD_MS);
+}
+
+export function overlayDevicePixelRatio(rawDpr: number) {
+  const dpr = Number.isFinite(rawDpr) && rawDpr > 0 ? rawDpr : 1;
+  return Math.min(OVERLAY_MAX_DPR, Math.max(1, dpr));
+}
+
 export type OverlayStatus = {
   hands: number;
   body: boolean;
@@ -177,7 +212,9 @@ export function coverMappedPoint(
 }
 
 export function resizeOverlayCanvas(canvas: HTMLCanvasElement) {
-  const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+  const dpr = overlayDevicePixelRatio(
+    typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1,
+  );
   const width = Math.max(1, canvas.clientWidth);
   const height = Math.max(1, canvas.clientHeight);
   const pixelW = Math.max(1, Math.round(width * dpr));
@@ -217,24 +254,21 @@ export function drawLandmarkOverlay(
   drawConnections(ctx, map, POSE_CONNECTIONS);
   drawDots(ctx, map, POSE_POINTS, 3.1);
 
-  drawHand(ctx, map, LEFT_HAND_OFFSET, LEFT_HAND_COLOR);
-  drawHand(ctx, map, RIGHT_HAND_OFFSET, RIGHT_HAND_COLOR);
+  drawHand(ctx, map, LEFT_HAND_CONNECTIONS, LEFT_HAND_POINTS, LEFT_HAND_COLOR);
+  drawHand(ctx, map, RIGHT_HAND_CONNECTIONS, RIGHT_HAND_POINTS, RIGHT_HAND_COLOR);
 }
 
 function drawHand(
   ctx: CanvasRenderingContext2D,
   map: (index: number) => { x: number; y: number } | null,
-  offset: number,
+  connections: ReadonlyArray<readonly [number, number]>,
+  points: readonly number[],
   color: string,
 ) {
-  const connections = HAND_CONNECTIONS.map(
-    ([a, b]) => [offset + a, offset + b] as const,
-  );
   ctx.lineWidth = 1.85;
   ctx.strokeStyle = color;
   ctx.fillStyle = color;
   drawConnections(ctx, map, connections);
-  const points = Array.from({ length: HAND_LANDMARKS }, (_, i) => offset + i);
   drawDots(ctx, map, points, 2.6);
 }
 
