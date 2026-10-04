@@ -37,9 +37,22 @@ const threeSigns = (names, pauseParts = pause) => [
   { hold: 12 },
 ];
 
-async function postInterpret({ name, landmarks, durationMs }) {
+function dummyWebm() {
+  const buffer = Buffer.alloc(12_000, 1);
+  buffer[0] = 0x1a;
+  buffer[1] = 0x45;
+  buffer[2] = 0xdf;
+  buffer[3] = 0xa3;
+  return buffer;
+}
+
+async function postInterpret({ name, landmarks, durationMs, videoBytes, videoType }) {
   const form = new FormData();
-  form.append("video", new Blob([Buffer.alloc(12_000, 1)], { type: "video/webm" }), "signing.webm");
+  form.append(
+    "video",
+    new Blob([videoBytes ?? dummyWebm()], { type: videoType ?? "video/webm" }),
+    "signing.webm",
+  );
   if (landmarks) {
     form.append(
       "landmarks",
@@ -82,6 +95,7 @@ const cases = [
     durationMs: 2_500,
     expectSource: "dedicated",
     expectNoGlosses: true,
+    videoType: "text/plain",
   },
   {
     name: "fallback-no-hands",
@@ -171,6 +185,11 @@ const cases = [
     expectFallback: /longer than the ~30s limit for several signs/,
     expectNoDedicatedTop: true,
   },
+  {
+    name: "reject-not-video",
+    videoBytes: Buffer.alloc(12_000, 2),
+    expectStatus: 400,
+  },
 ];
 
 const results = [];
@@ -179,7 +198,7 @@ for (const testCase of cases) {
   const { payload } = result;
   const glosses = payload.glosses?.map((item) => item.gloss);
   const checks = {
-    status: result.status === 200,
+    status: result.status === (testCase.expectStatus ?? 200),
     source: !testCase.expectSource || payload.source === testCase.expectSource,
     fallback: !testCase.expectFallback || testCase.expectFallback.test(payload.fallbackReason ?? ""),
     dedicatedTop: !testCase.expectNoDedicatedTop || !payload.dedicatedTop,
@@ -209,6 +228,32 @@ for (const testCase of cases) {
     console.error(testCase.name, checks, result);
     process.exitCode = 1;
   }
+}
+
+const oversized = await fetch(`${BASE}/api/interpret`, {
+  method: "POST",
+  headers: {
+    "content-length": String(5 * 1024 * 1024),
+    "x-forwarded-for": "198.51.100.250",
+  },
+  body: "x",
+});
+let oversizedPayload = {};
+try {
+  oversizedPayload = await oversized.json();
+} catch {
+  oversizedPayload = { error: await oversized.text() };
+}
+const oversizedOk = oversized.status === 413;
+results.push({
+  name: "reject-oversize-before-formdata",
+  ok: oversizedOk,
+  status: oversized.status,
+  error: oversizedPayload.error,
+});
+if (!oversizedOk) {
+  console.error("reject-oversize-before-formdata", oversized.status, oversizedPayload);
+  process.exitCode = 1;
 }
 
 console.log(JSON.stringify(results, null, 2));

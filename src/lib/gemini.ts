@@ -34,6 +34,33 @@ export const GEMINI_VIDEO_FAST_FALLBACKS = [
 
 export const VIDEO_INTERPRET_FPS = 8;
 export const VIDEO_REQUEST_TIMEOUT_MS = 55_000;
+export const GLOSS_CLEANUP_TIMEOUT_MS = 20_000;
+/** Caps gloss cleanup + video interpret + lyric follow-up on one request. */
+export const MAX_GEMINI_CALLS_PER_REQUEST = 3;
+/** Leave slack under the 120 s Vercel function limit for ONNX, mute, and the response. */
+export const GEMINI_REQUEST_DEADLINE_MS = 95_000;
+
+export type GeminiBudget = {
+  calls: number;
+  startedAt: number;
+};
+
+export function createGeminiBudget(now = Date.now()): GeminiBudget {
+  return { calls: 0, startedAt: now };
+}
+
+export function canSpendGeminiCall(
+  budget: GeminiBudget,
+  timeoutMs: number,
+  now = Date.now(),
+) {
+  if (budget.calls >= MAX_GEMINI_CALLS_PER_REQUEST) return false;
+  return now - budget.startedAt + timeoutMs <= GEMINI_REQUEST_DEADLINE_MS;
+}
+
+function spendGeminiCall(budget: GeminiBudget) {
+  budget.calls += 1;
+}
 
 export const ASL_PROMPT = `You are SignSpeak's ASL → English translator. The user recorded this clip so a non-signer can read what was signed. Assume American Sign Language by default.
 
@@ -152,11 +179,14 @@ export function isMockMode() {
   return !getGeminiApiKey();
 }
 
-export async function englishFromDedicatedGloss(input: {
-  gloss: string;
-  confidence: number;
-  top?: DedicatedTop[];
-}): Promise<InterpretSuccess> {
+export async function englishFromDedicatedGloss(
+  input: {
+    gloss: string;
+    confidence: number;
+    top?: DedicatedTop[];
+  },
+  budget: GeminiBudget = createGeminiBudget(),
+): Promise<InterpretSuccess> {
   const fallbackEnglish = englishFromGloss(input.gloss);
   const fields = {
     source: "dedicated" as const,
@@ -181,10 +211,13 @@ export async function englishFromDedicatedGloss(input: {
     )
     .join(", ");
 
-  const parsed = await cleanUpGlossEnglish(`${GLOSS_CLEANUP_PROMPT}
+  const parsed = await cleanUpGlossEnglish(
+    `${GLOSS_CLEANUP_PROMPT}
 
 Predicted glosses with softmax confidence: ${ranked}.
-Primary gloss: ${input.gloss} (${friendlyGloss(input.gloss)}).`);
+Primary gloss: ${input.gloss} (${friendlyGloss(input.gloss)}).`,
+    budget,
+  );
 
   return parsed
     ? { ...parsed, english: parsed.english || fallbackEnglish, unclear: false, mock: false, ...fields }
@@ -192,9 +225,12 @@ Primary gloss: ${input.gloss} (${friendlyGloss(input.gloss)}).`);
 }
 
 /** Several confident glosses in signed order → one English sentence. */
-export async function englishFromDedicatedGlosses(input: {
-  glosses: DedicatedTop[];
-}): Promise<InterpretSuccess> {
+export async function englishFromDedicatedGlosses(
+  input: {
+    glosses: DedicatedTop[];
+  },
+  budget: GeminiBudget = createGeminiBudget(),
+): Promise<InterpretSuccess> {
   const glosses = input.glosses.map(({ gloss, glossLabel, confidence }) => ({
     gloss,
     glossLabel,
@@ -213,9 +249,12 @@ export async function englishFromDedicatedGlosses(input: {
     )
     .join(", ");
 
-  const parsed = await cleanUpGlossEnglish(`${GLOSS_SEQUENCE_PROMPT}
+  const parsed = await cleanUpGlossEnglish(
+    `${GLOSS_SEQUENCE_PROMPT}
 
-Glosses in signed order: ${ordered}.`);
+Glosses in signed order: ${ordered}.`,
+    budget,
+  );
 
   return parsed
     ? { ...parsed, english: parsed.english || fallbackEnglish, unclear: false, mock: false, ...fields }
@@ -223,11 +262,13 @@ Glosses in signed order: ${ordered}.`);
 }
 
 /** Text-only gloss cleanup. Returns null so callers can fall back to dictionary English. */
-async function cleanUpGlossEnglish(prompt: string) {
+async function cleanUpGlossEnglish(prompt: string, budget: GeminiBudget) {
   const models = getGeminiModels();
   const ai = new GoogleGenAI({ apiKey: getGeminiApiKey() });
   let lastError: unknown;
   for (const model of models) {
+    if (!canSpendGeminiCall(budget, GLOSS_CLEANUP_TIMEOUT_MS)) break;
+    spendGeminiCall(budget);
     try {
       const response = await ai.models.generateContent({
         model,
@@ -237,7 +278,7 @@ async function cleanUpGlossEnglish(prompt: string) {
           responseSchema: INTERPRET_SCHEMA,
           thinkingConfig: { thinkingBudget: 0 },
           httpOptions: {
-            timeout: 20_000,
+            timeout: GLOSS_CLEANUP_TIMEOUT_MS,
             retryOptions: { attempts: 1 },
           },
         },
@@ -261,10 +302,13 @@ async function cleanUpGlossEnglish(prompt: string) {
   return null;
 }
 
-export async function interpretAslVideo(input: {
-  mimeType: string;
-  base64: string;
-}): Promise<InterpretSuccess> {
+export async function interpretAslVideo(
+  input: {
+    mimeType: string;
+    base64: string;
+  },
+  budget: GeminiBudget = createGeminiBudget(),
+): Promise<InterpretSuccess> {
   if (isMockMode()) {
     await delay(1400);
     return MOCK_RESULT;
@@ -276,6 +320,8 @@ export async function interpretAslVideo(input: {
 
   // One pass of lite models only. SDK retries are disabled; busy models fail over quickly.
   for (const model of models) {
+    if (!canSpendGeminiCall(budget, VIDEO_REQUEST_TIMEOUT_MS)) break;
+    spendGeminiCall(budget);
     try {
       const result = await generateInterpret(ai, model, input, ASL_PROMPT);
       if (!shouldRetryLyricFocus(result)) {
@@ -283,6 +329,10 @@ export async function interpretAslVideo(input: {
       }
 
       try {
+        if (!canSpendGeminiCall(budget, VIDEO_REQUEST_TIMEOUT_MS)) {
+          return sanitizeInterpretResult(result);
+        }
+        spendGeminiCall(budget);
         const followUp = await generateInterpret(
           ai,
           model,
@@ -317,7 +367,7 @@ export async function interpretAslVideo(input: {
     }
   }
 
-  throw lastError;
+  throw lastError ?? new Error("Translation timed out.");
 }
 
 async function generateInterpret(
@@ -427,7 +477,7 @@ export function friendlyGeminiError(message: string, fallbackReason?: string) {
     return "Could not prepare a silent video for translation. Try signing again.";
   }
   if (lower.includes("api key") || lower.includes("permission") || lower.includes("401")) {
-    return "Gemini rejected the API key. Check GEMINI_API_KEY in .env.local.";
+    return "Translation is not configured correctly. Try again later.";
   }
   if (isGeminiBusyError(message)) {
     return "Gemini is busy right now. Wait a few seconds and try again.";
@@ -435,8 +485,8 @@ export function friendlyGeminiError(message: string, fallbackReason?: string) {
   if (lower.includes("quota") || lower.includes("429") || lower.includes("resource exhausted")) {
     return "Gemini is rate-limited right now. Wait a moment and try again.";
   }
-  if (lower.includes("not found") || lower.includes("404")) {
-    return "That Gemini model is unavailable. Set GEMINI_MODEL in .env.local to a current multimodal model.";
+  if (lower.includes("not found") || lower.includes("404") || lower.includes("timed out")) {
+    return "Translation is temporarily unavailable. Try again later.";
   }
   return userFacingInterpretError({
     error:

@@ -134,7 +134,8 @@ DEDICATED_ASL_THRESHOLD=0.55
 # DEDICATED_ASL_SEQUENCE_ENABLED=true
 ```
 
-`/api/status` reports the Gemini model and dedicated-model settings.
+`/api/status` reports mock vs live and the dedicated-model label. It does not
+expose Gemini model names or routing thresholds.
 
 ## Hybrid pipeline
 
@@ -214,7 +215,7 @@ yellow mock banner appears and a sample sentence is returned.
 - `src/app/page.tsx` — landing
 - `src/app/demo/page.tsx` — camera studio
 - `src/app/api/interpret/route.ts` — dedicated ONNX path + Gemini fallback
-- `src/app/api/status/route.ts` — mock mode + dedicated settings
+- `src/app/api/status/route.ts` — mock mode + dedicated model label
 - `src/lib/asl-preprocess.ts` / `asl-infer.ts` — landmark contract + ONNX
 - `src/lib/sign-segmentation.ts` / `asl-sequence.ts` — split long clips into signs, read them in order
 - `src/lib/mediapipe-landmarks.ts` — browser Pose + Hands

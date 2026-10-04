@@ -1,5 +1,33 @@
 # SignSpeak patch notes
 
+## Version 3.1 — Several signs in a row
+
+The dedicated model is still the **v3.0.1** 200-class RL BiLSTM. Weights and
+labels did not change. What changed is routing: a longer clip can be read as
+several isolated signs instead of skipping straight to Gemini video.
+
+**How to sign a short phrase.** Pause about half a second after each vocab
+sign (hold still or lower your hands). The studio shows the glosses in order
+(HELLO · NAME · WHAT) and one English sentence.
+
+**Routing.** Clips up to **8 seconds / 120 frames** stay on the one-sign path.
+Longer clips up to **~30 seconds / 900 frames** are split at pauses; motion
+runs over ~4 seconds fall back to 2-second sliding windows. Each segment is
+at most 120 frames and must pass the same gates (confidence ≥ 55%, margin ≥
+0.15, entropy ≤ 0.75). Consecutive duplicate glosses merge. If more than half
+the segments pass, Gemini only cleans the gloss list into English. If most
+segments fail, the clip uses Gemini video as before.
+
+**What did not change.** Isolated-sign gates, mute soft-fail, visual-only
+song prompts, and the 200-word list. `DEDICATED_ASL_SEQUENCE_ENABLED=false`
+restores the old “long clip → Gemini video” skip.
+
+**Also in this release.** `/api/interpret` is rate-limited per IP, Gemini
+calls are capped per request so fallbacks finish before the 120-second
+function limit, uploads follow Vercel’s ~4.5 MB body limit, and the client
+MIME type is not trusted. `/api/status` no longer reports routing thresholds
+or the Gemini model name.
+
 ## Version 3.0.1 — Extra RL on the 200-class BiLSTM
 
 The dedicated isolated-sign classifier keeps the same **200** ASL Citizen

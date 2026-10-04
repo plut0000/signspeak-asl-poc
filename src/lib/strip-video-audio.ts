@@ -13,19 +13,26 @@ export type SilentVideo = {
   stripped: boolean;
 };
 
-export function looksLikeMediaContainer(buffer: Buffer) {
-  if (buffer.length < 12) return false;
+/** Ignore the client Content-Type; only these containers are sent to Gemini. */
+export function sniffVideoMime(
+  buffer: Buffer,
+): "video/webm" | "video/mp4" | null {
+  if (buffer.length < 12) return null;
   if (
     buffer[0] === 0x1a &&
     buffer[1] === 0x45 &&
     buffer[2] === 0xdf &&
     buffer[3] === 0xa3
   ) {
-    return true;
+    return "video/webm";
   }
-  if (buffer.toString("ascii", 4, 8) === "ftyp") return true;
-  if (buffer.toString("ascii", 0, 4) === "RIFF") return true;
-  return false;
+  if (buffer.toString("ascii", 4, 8) === "ftyp") return "video/mp4";
+  return null;
+}
+
+export function looksLikeMediaContainer(buffer: Buffer) {
+  if (sniffVideoMime(buffer)) return true;
+  return buffer.length >= 12 && buffer.toString("ascii", 0, 4) === "RIFF";
 }
 
 export function bufferHasAudioSignature(buffer: Buffer) {

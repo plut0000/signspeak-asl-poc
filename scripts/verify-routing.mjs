@@ -64,8 +64,8 @@ assert(
   "inference should load from the versioned dedicated model dir",
 );
 assert(
-  patchNotes.includes('DEMO_VERSION = "3.0.1"'),
-  "demo version should be 3.0.1",
+  patchNotes.includes('DEMO_VERSION = "3.1.0"'),
+  "demo version should be 3.1.0",
 );
 assert(
   citizen.includes('DEDICATED_MODEL_VERSION = "3.0.1"'),
@@ -84,12 +84,16 @@ assert(
   "friendly gloss map should include Coca-Cola and Take off",
 );
 assert(
-  statusRoute.includes("maxIsolatedMs: routing.maxIsolatedMs"),
-  "/api/status should report the isolated-sign millisecond budget",
+  !statusRoute.includes("maxIsolatedMs") &&
+    !statusRoute.includes("maxIsolatedFrames") &&
+    !statusRoute.includes("threshold") &&
+    !statusRoute.includes("getGeminiModel"),
+  "/api/status should not expose routing gates or the Gemini model name",
 );
 assert(
-  statusRoute.includes("maxIsolatedFrames: routing.maxIsolatedFrames"),
-  "/api/status should report the isolated-sign frame budget",
+  statusRoute.includes("DEDICATED_MODEL_VERSION") &&
+    statusRoute.includes("isDedicatedEnabled"),
+  "/api/status should still report whether the dedicated model is on",
 );
 assert(
   media.includes("LONG_CLIP_HINT_MS = MAX_ISOLATED_SIGN_MS"),
@@ -117,6 +121,48 @@ assert(
   interpretRoute.includes("const prediction = await predictGloss(features);") &&
     interpretRoute.includes("const decision = assessDedicatedPrediction(prediction);"),
   "clips inside the isolated-sign budget should keep the single-sign path",
+);
+
+const nextConfig = await readFile(path.join(ROOT, "next.config.ts"), "utf8");
+const pkg = JSON.parse(await readFile(path.join(ROOT, "package.json"), "utf8"));
+const gemini = await readFile(path.join(ROOT, "src/lib/gemini.ts"), "utf8");
+assert(pkg.dependencies.next === "16.3.6", "next should be 16.3.6");
+assert(nextConfig.includes("poweredByHeader: false"), "hide x-powered-by");
+assert(
+  nextConfig.includes("X-Content-Type-Options") &&
+    nextConfig.includes("X-Frame-Options") &&
+    nextConfig.includes("Referrer-Policy"),
+  "next.config should set basic security headers",
+);
+assert(
+  interpretRoute.includes("content-length") &&
+    interpretRoute.includes("formData()") &&
+    interpretRoute.indexOf("content-length") < interpretRoute.indexOf("formData()"),
+  "interpret should check Content-Length before reading formData",
+);
+assert(
+  interpretRoute.includes("4.5 * 1024 * 1024"),
+  "upload cap should match Vercel’s ~4.5 MB body limit",
+);
+assert(
+  interpretRoute.includes("sniffVideoMime") && !interpretRoute.includes("video.type"),
+  "interpret should sniff the video container instead of trusting the client MIME type",
+);
+assert(
+  interpretRoute.includes("takeInterpretSlot(clientIp(request))"),
+  "interpret should rate-limit per IP",
+);
+assert(
+  readExportNumber(gemini, "MAX_GEMINI_CALLS_PER_REQUEST") === 3,
+  "each request should cap Gemini calls",
+);
+assert(
+  readExportNumber(gemini, "GEMINI_REQUEST_DEADLINE_MS") === 95_000,
+  "Gemini fallbacks should stop before the 120 s function limit",
+);
+assert(
+  !gemini.includes("GEMINI_API_KEY in .env") && !gemini.includes("GEMINI_MODEL in .env"),
+  "Gemini errors should not name env files or config keys",
 );
 
 function assessBudget({ frames, durationMs }) {

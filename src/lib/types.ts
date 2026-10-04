@@ -10,15 +10,9 @@ export type DedicatedTop = {
 
 export type StatusResponse = {
   mode: AppMode;
-  model: string;
   dedicated: {
     enabled: boolean;
-    threshold: number;
-    margin?: number;
-    maxIsolatedMs?: number;
-    maxIsolatedFrames?: number;
     classes: number;
-    architecture: string;
     version: string;
     variant: string;
     label: string;

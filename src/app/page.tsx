@@ -29,7 +29,7 @@ const steps = [
   {
     icon: Hand,
     title: "A dedicated model reads the sign",
-    body: "A short isolated sign goes to the 200-class ASL Citizen BiLSTM; Gemini turns that gloss into English. Longer clips skip the classifier and use Gemini on the full video.",
+    body: "A short isolated sign goes to the 200-class ASL Citizen BiLSTM; several signs with a pause between them are read one by one. Gemini turns those glosses into English. Songs and unclear clips use Gemini on the full video.",
   },
   {
     icon: Volume2,
@@ -53,11 +53,11 @@ export default function HomePage() {
             </h1>
             <p className="max-w-xl text-base leading-7 text-muted-foreground sm:text-lg">
               SignSpeak is a feasibility demo: someone signs on camera. A
-              short isolated sign can use the dedicated 200-class BiLSTM;
-              longer clips use Gemini on the full video. Gemini also cleans a
-              confident gloss into English, and the site speaks the text
-              aloud. It is a student proof of concept, not a certified
-              interpreter.
+              short isolated sign, or a few signs with a pause after each,
+              can use the dedicated 200-class BiLSTM. Gemini cleans those
+              glosses into English, and the site speaks the text aloud. Songs
+              and unclear clips use Gemini on the full video. It is a student
+              proof of concept, not a certified interpreter.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button asChild size="lg" className="h-12 px-5 text-base">
@@ -133,14 +133,14 @@ export default function HomePage() {
           </h2>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
             The dedicated model is an RL-fine-tuned 200-class ASL Citizen
-            BiLSTM (~90.3% test top-1, up from ~89.7% after extra RL). It is used
-            only for a short, one-sign-like clip with a confident prediction.
-            Long sentences, songs, and conversation skip that model and use
-            Gemini video. Gemini is also the fallback when confidence is low
-            or landmarks fail. Accuracy varies with lighting, camera angle,
-            and whether live MediaPipe matches the training keypoints. This
-            proves the product loop is demoable. It is not a substitute for a
-            human interpreter.
+            BiLSTM (~90.3% test top-1). It reads one isolated sign at a time.
+            Pause between vocab signs and it can stitch a short phrase;
+            fluent signing, songs, and conversation still use Gemini video.
+            Gemini is also the fallback when confidence is low or landmarks
+            fail. Accuracy varies with lighting, camera angle, and whether
+            live MediaPipe matches the training keypoints. This proves the
+            product loop is demoable. It is not a substitute for a human
+            interpreter.
           </p>
         </section>
       </main>

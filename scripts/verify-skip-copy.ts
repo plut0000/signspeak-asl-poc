@@ -14,6 +14,22 @@ import {
   SEQUENCE_GEMINI_ERROR,
   userFacingInterpretError,
 } from "../src/lib/dedicated-skip-copy.ts";
+import {
+  canSpendGeminiCall,
+  createGeminiBudget,
+  friendlyGeminiError,
+  GEMINI_REQUEST_DEADLINE_MS,
+  GLOSS_CLEANUP_TIMEOUT_MS,
+  MAX_GEMINI_CALLS_PER_REQUEST,
+  VIDEO_REQUEST_TIMEOUT_MS,
+} from "../src/lib/gemini.ts";
+import {
+  INTERPRET_RATE_LIMIT,
+  INTERPRET_RATE_WINDOW_MS,
+  resetInterpretRateLimit,
+  takeInterpretSlot,
+} from "../src/lib/rate-limit.ts";
+import { sniffVideoMime } from "../src/lib/strip-video-audio.ts";
 import { buildClip } from "./sign-fixtures.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -242,6 +258,51 @@ for (const reason of [oneOfThree, noneOfThree, sparseReason, over30Reason, NO_SI
     `sequence skip copy should stay plain: ${reason}`,
   );
 }
+
+assert(
+  !/GEMINI_API_KEY|\.env\.local|GEMINI_MODEL/.test(
+    friendlyGeminiError("API key invalid: 401 permission denied"),
+  ),
+  "key errors should not name env files",
+);
+assert(
+  !/GEMINI_MODEL|\.env/.test(friendlyGeminiError("model not found 404")),
+  "missing-model errors should not name config",
+);
+
+resetInterpretRateLimit();
+const t0 = 1_000_000;
+for (let i = 0; i < INTERPRET_RATE_LIMIT; i++) {
+  assert(takeInterpretSlot("198.51.100.9", t0 + i), `rate-limit slot ${i}`);
+}
+assert(!takeInterpretSlot("198.51.100.9", t0 + INTERPRET_RATE_LIMIT), "11th request is limited");
+assert(takeInterpretSlot("198.51.100.10", t0), "a second IP keeps its own window");
+assert(
+  takeInterpretSlot("198.51.100.9", t0 + INTERPRET_RATE_WINDOW_MS + 1),
+  "the window should roll over",
+);
+
+const budget = createGeminiBudget(0);
+assert(canSpendGeminiCall(budget, VIDEO_REQUEST_TIMEOUT_MS, 0), "fresh budget can call Gemini");
+budget.calls = MAX_GEMINI_CALLS_PER_REQUEST;
+assert(!canSpendGeminiCall(budget, GLOSS_CLEANUP_TIMEOUT_MS, 0), "call cap is per request");
+budget.calls = 0;
+assert(
+  !canSpendGeminiCall(budget, VIDEO_REQUEST_TIMEOUT_MS, GEMINI_REQUEST_DEADLINE_MS - 1_000),
+  "a late video call should not start under the 120 s function limit",
+);
+
+const webm = Buffer.alloc(32, 1);
+webm[0] = 0x1a;
+webm[1] = 0x45;
+webm[2] = 0xdf;
+webm[3] = 0xa3;
+assert(sniffVideoMime(webm) === "video/webm", "EBML is webm");
+const mp4 = Buffer.alloc(32, 0);
+mp4.write("ftyp", 4);
+assert(sniffVideoMime(mp4) === "video/mp4", "ftyp is mp4");
+assert(sniffVideoMime(Buffer.alloc(32, 1)) === null, "random bytes are not a video");
+assert(sniffVideoMime(Buffer.from("RIFF....WAVE")) === null, "WAV is not trusted as video");
 
 assert(!liveHandCoverageIsLow(4, 0), "too few frames should not nag yet");
 assert(liveHandCoverageIsLow(20, 0), "no hands should hint");
