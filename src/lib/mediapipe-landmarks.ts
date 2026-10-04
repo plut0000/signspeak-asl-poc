@@ -23,6 +23,14 @@ export type LandmarkCapture = {
   handFrames: number;
 };
 
+export type LandmarkSample = {
+  frame: Float32Array;
+  hasPose: boolean;
+  hasHand: boolean;
+  leftHand: boolean;
+  rightHand: boolean;
+};
+
 type VisionModule = typeof import("@mediapipe/tasks-vision");
 type PoseLandmarker = Awaited<
   ReturnType<VisionModule["PoseLandmarker"]["createFromOptions"]>
@@ -52,7 +60,7 @@ export async function prepareLandmarkTrackers() {
 export function sampleLandmarkFrame(
   landmarkers: Landmarkers,
   video: HTMLVideoElement,
-): { frame: Float32Array; hasPose: boolean; hasHand: boolean } | null {
+): LandmarkSample | null {
   if (video.readyState < 2 || video.videoWidth < 8 || video.videoHeight < 8) {
     return null;
   }
@@ -72,18 +80,22 @@ export function sampleLandmarkFrame(
   writeLandmarks(frame, 0, pose, POSE_LANDMARKS);
 
   let hasHand = false;
+  let leftHand = false;
+  let rightHand = false;
   const hands = handResult.landmarks ?? [];
   const handedness = handResult.handedness ?? handResult.handednesses ?? [];
   for (let i = 0; i < hands.length; i++) {
     const label = handedness[i]?.[0]?.categoryName ?? "";
-    const offset =
-      label.toLowerCase() === "left" ? LEFT_HAND_OFFSET : RIGHT_HAND_OFFSET;
+    const isLeft = label.toLowerCase() === "left";
+    const offset = isLeft ? LEFT_HAND_OFFSET : RIGHT_HAND_OFFSET;
     if (writeLandmarks(frame, offset, hands[i], HAND_LANDMARKS)) {
       hasHand = true;
+      if (isLeft) leftHand = true;
+      else rightHand = true;
     }
   }
 
-  return { frame, hasPose: true, hasHand };
+  return { frame, hasPose: true, hasHand, leftHand, rightHand };
 }
 
 export function resetLandmarkClock() {

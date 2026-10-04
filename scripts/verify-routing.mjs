@@ -167,6 +167,14 @@ assert(
     camera.includes("frameRate: { ideal: 15, max: 24 }"),
   "webcam capture should stay small enough for a 30 s Gemini upload",
 );
+const overlay = await readFile(
+  path.join(ROOT, "src/lib/landmark-overlay.ts"),
+  "utf8",
+);
+assert(
+  overlay.includes("video.videoWidth") && overlay.includes("video.videoHeight"),
+  "tracking overlay should map landmarks from the live video size, not a hardcoded 960×720",
+);
 assert(
   readExportNumber(uploadLimits, "RECORD_BITS_PER_SECOND") === 480_000,
   "MediaRecorder bitrate should keep a 30 s clip under the video cap",
