@@ -113,6 +113,15 @@ async function createLandmarkers(): Promise<Landmarkers> {
     }),
   );
 
+  const warmup = document.createElement("canvas");
+  warmup.width = 64;
+  warmup.height = 64;
+  try {
+    sampleLandmarkFrame({ pose, hands }, warmup);
+  } catch {
+    resetLandmarkClock();
+  }
+
   return { pose, hands };
 }
 
