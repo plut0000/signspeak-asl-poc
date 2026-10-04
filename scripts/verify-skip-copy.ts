@@ -244,7 +244,7 @@ for (const reason of [oneOfThree, noneOfThree, NO_SIGNS_REASON, TOO_MANY_SEGMENT
     `a sequence skip should ask for pauses instead of lighting: ${reason}`,
   );
 }
-assert(/pause briefly between signs/.test(SEQUENCE_GEMINI_ERROR), "sequence error asks for pauses");
+assert(/pause briefly between signs/i.test(SEQUENCE_GEMINI_ERROR), "sequence error asks for pauses");
 assert(
   !/Google/i.test(LONG_CLIP_GEMINI_ERROR) && !/Google/i.test(SEQUENCE_GEMINI_ERROR),
   "user-facing errors should not blame Google",

@@ -16,10 +16,11 @@ already too large.
 The claimed MediaRecorder type is a hint; if Gemini rejects the mime, the
 same bytes are retried once as the other type (webm ↔ mp4).
 
-**Several signs.** Pause padding is ~280 ms. Wrist twitches under ~600 ms
-are dropped. Sequence gates are 40% / 0.08 / 0.88. Two clear signs out of
-four is enough; otherwise soft top-1 guesses can still go to Gemini text
-cleanup. Isolated-sign gates stay 55% / 0.15 / 0.75.
+**Several signs.** Pause padding is ~280 ms and does not swallow the next
+sign. Wrist twitches under ~600 ms are dropped. Sequence gates are 40% /
+0.08 / 0.88. Two clear signs out of four is enough; otherwise soft top-1
+guesses can still go to Gemini text cleanup. Isolated-sign gates stay 55% /
+0.15 / 0.75.
 
 **Errors.** Failed long-clip translation no longer mentions Google. One tip:
 pause between signs, or sign one word under ~8 seconds.

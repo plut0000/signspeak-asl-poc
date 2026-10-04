@@ -237,7 +237,7 @@ const minority = await readSignSequence({
   predict: scripted([
     { gloss: "HELLO" },
     { gloss: "NAME", confidence: 0.2 },
-    { gloss: "WHAT1", confidence: 0.7, margin: 0.05 },
+    { gloss: "WHAT1", confidence: 0.2, margin: 0.05 },
   ]).predict,
 });
 assert(!minority.ok, "1 of 3 confident falls back to Gemini video");

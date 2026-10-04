@@ -25,8 +25,6 @@ export const MIN_MOTION_MS = 280;
 export const SEGMENT_PAD_MS = 280;
 /** Motion shorter than this is a twitch, not a vocab sign. */
 export const MIN_SIGN_MS = 600;
-/** Adjacent pause-segments this close were split by a tracking blip. */
-export const MERGE_GAP_MS = 180;
 const SMOOTH_MS = 200;
 /** Wrist speeds are in shoulder widths per second; signing hands move well above 1. */
 export const MIN_PAUSE_SPEED = 0.3;
@@ -83,7 +81,6 @@ export function segmentSigns(
   const minMotion = Math.max(2, toFrames(MIN_MOTION_MS));
   const pad = toFrames(SEGMENT_PAD_MS);
   const minSign = Math.max(MIN_LANDMARK_FRAMES, toFrames(MIN_SIGN_MS));
-  const mergeGap = toFrames(MERGE_GAP_MS);
   const maxRun = Math.min(
     MAX_SEGMENT_FRAMES,
     Math.max(minSign, toFrames(MAX_SIGN_RUN_MS)),
@@ -129,6 +126,9 @@ export function segmentSigns(
           start = trimmed.start;
           end = trimmed.end;
         }
+        if (segments.length) {
+          start = Math.max(start, segments[segments.length - 1].end);
+        }
         if (end - start >= minSign) {
           const windowed = end - start > maxRun;
           const pieces = windowed
@@ -149,7 +149,7 @@ export function segmentSigns(
   }
 
   return {
-    segments: mergeCloseSegments(segments, anyHand, mergeGap, minSign),
+    segments,
     fps,
     handFrames,
     pauseSpeed,
@@ -298,27 +298,3 @@ function trimUntrackedEdges(start: number, end: number, anyHand: Uint8Array) {
   return { start: from, end: to };
 }
 
-function mergeCloseSegments(
-  segments: SignSegment[],
-  anyHand: Uint8Array,
-  mergeGap: number,
-  minSign: number,
-) {
-  const merged: SignSegment[] = [];
-  for (const segment of segments) {
-    const last = merged[merged.length - 1];
-    const canMerge =
-      last &&
-      last.method === "pause" &&
-      segment.method === "pause" &&
-      segment.start - last.end <= mergeGap &&
-      segment.end - last.start <= MAX_SEGMENT_FRAMES;
-    if (canMerge && last) {
-      last.end = segment.end;
-      last.handFrames = countOnes(anyHand, last.start, last.end);
-      continue;
-    }
-    merged.push({ ...segment });
-  }
-  return merged.filter((segment) => segment.end - segment.start >= minSign);
-}

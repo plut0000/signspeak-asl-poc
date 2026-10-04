@@ -31,8 +31,8 @@ function translateClip(video, landmarks, durationMs, quality):
     # pause = both wrists slower than an adaptive threshold (0.3–0.6
     #   shoulder widths/s), or no hand tracked, for ≥ 400 ms
     # motion shorter than ~600 ms is a twitch and is dropped
-    # surviving runs are padded ~280 ms; hand-less edges trimmed only if
-    #   a full sign remains; nearby pause-segments merge across ~180 ms gaps
+    # surviving runs are padded ~280 ms without overlapping the next sign;
+    #   hand-less edges trimmed only if a full sign remains
     # runs over ~4 s → 2 s sliding windows, 1 s stride
     # every segment is 8–120 frames
   preds = [onnxBiLSTM(preprocess(segment)) for segment in segments]
