@@ -15,7 +15,7 @@ let initPromise: Promise<LandmarkRuntime> | null = null;
 
 function post(message: LandmarkWorkerResponse, transfer?: Transferable[]) {
   if (transfer?.length) {
-    postMessage(message, transfer);
+    postMessage(message, { transfer });
   } else {
     postMessage(message);
   }
@@ -59,10 +59,8 @@ async function onRequest(data: LandmarkWorkerRequest) {
       post({ type: "result", ok: false, timestamp, detectMs });
       return;
     }
-    const buffer = sample.frame.buffer.slice(
-      sample.frame.byteOffset,
-      sample.frame.byteOffset + sample.frame.byteLength,
-    );
+    const frame = new Float32Array(sample.frame);
+    const buffer = frame.buffer;
     post(
       {
         type: "result",
