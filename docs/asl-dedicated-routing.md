@@ -1,7 +1,7 @@
 # Dedicated ASL model + Gemini fallback (SignSpeak)
 
-**License:** Research / non-commercial. The live dedicated model is an ASL
-Citizen 200-class BiLSTM (CC BY-NC-SA 4.0). The earlier 100-class weights remain
+**License:** MIT. The live dedicated model is an ASL
+Citizen 200-class BiLSTM. The earlier 100-class weights remain
 in `models/asl-citizen-bilstm100/`. The earlier 50-class weights remain
 in `models/asl-citizen-bilstm50/`. The earlier 20-class weights remain in
 `models/asl-citizen-bilstm20/`. The earlier WLASL TCN scaffold remains parked

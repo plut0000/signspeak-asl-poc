@@ -1,11 +1,10 @@
 # ASL Citizen 200-class BiLSTM
 
-Research / non-commercial DECA POC weights. Derived from
+DECA POC weights. Derived from
 [ASL Citizen](https://www.microsoft.com/en-us/research/project/asl-citizen/)
 processed keypoints (`SharoonArshad/asl-citizen-processed-200`).
 
-**License: CC BY-NC-SA 4.0** — do not use this model or the derived keypoints
-commercially.
+**License: MIT.** See the repository `LICENSE`.
 
 **Production default is v3.0.1 (RL, 200-class).** `/api/interpret` loads
 `asl_citizen_bilstm200_rl.onnx` plus the sidecar `.onnx.data` file. A 150-class

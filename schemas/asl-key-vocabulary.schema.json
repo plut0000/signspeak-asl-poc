@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://signspeak.local/schemas/asl-key-vocabulary.json",
   "title": "SignSpeak Key Vocabulary Dictionary",
-  "description": "Curated isolated-sign vocabulary for the dedicated ASL recognizer (research / non-commercial). Gloss labels should align with WLASL class names when trained on WLASL.",
+  "description": "Curated isolated-sign vocabulary for the dedicated ASL recognizer. Gloss labels should align with WLASL class names when trained on WLASL.",
   "type": "object",
   "required": [
     "version",

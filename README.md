@@ -18,9 +18,7 @@ v2.1.3.1). Clips longer than one sign are split at pauses and read sign by
 sign; when most of those signs are unclear, the clip uses Gemini video
 instead. See `PATCH_NOTES.md`.
 
-**License:** ASL Citizen derived keypoints and the bundled BiLSTM are
-**CC BY-NC-SA 4.0** (research / non-commercial DECA POC). See
-`models/asl-citizen-bilstm200/README.md`.
+**License:** MIT. See `LICENSE`.
 
 ## What you can demo
 
