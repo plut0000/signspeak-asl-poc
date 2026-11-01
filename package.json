@@ -2,6 +2,7 @@
   "name": "asl-english-poc",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "DECA EIP proof of concept: webcam ASL → BiLSTM gloss → Gemini English → browser speech.",
   "scripts": {
     "dev": "next dev --port 43127",
