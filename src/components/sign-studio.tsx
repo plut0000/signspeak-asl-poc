@@ -1,16 +1,7 @@
 "use client";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LandmarkOverlay } from "@/components/landmark-overlay";
 import { useCamera } from "@/hooks/use-camera";
@@ -36,13 +27,14 @@ import {
 } from "@/lib/dedicated-skip-copy";
 import type {
   AppMode,
+  DedicatedTop,
   InterpretFailure,
   InterpretSuccess,
 } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import {
   AlertCircle,
   Camera,
-  CircleStop,
   LoaderCircle,
   RotateCcw,
   Sparkles,
@@ -88,6 +80,8 @@ export function SignStudio({ mode }: { mode: AppMode }) {
   const [error, setError] = useState("");
   const [skipNote, setSkipNote] = useState("");
   const [processingLongClip, setProcessingLongClip] = useState(false);
+  /** Length of the last recorded clip, shown on the timeline after Stop. */
+  const [clipMs, setClipMs] = useState(0);
   const [replayUrl, setReplayUrl] = useState("");
   const [replayLandmarks, setReplayLandmarks] = useState<PackedPlayback | null>(
     null,
@@ -118,6 +112,7 @@ export function SignStudio({ mode }: { mode: AppMode }) {
     setSkipNote("");
     setSession("idle");
     setProcessingLongClip(false);
+    setClipMs(0);
     clearReplay();
   }, [clearReplay, stopSpeech]);
 
@@ -271,6 +266,7 @@ export function SignStudio({ mode }: { mode: AppMode }) {
       recorderRef.current = null;
       const capture = stopLandmarks();
       const elapsed = Date.now() - startedAtRef.current;
+      setClipMs(elapsed);
       if (elapsed < MIN_RECORD_MS) {
         setSession("error");
         setError("That clip was too short. Sign for a couple of seconds, then stop.");
@@ -337,77 +333,32 @@ export function SignStudio({ mode }: { mode: AppMode }) {
   }, [clearTimers, stopLandmarks]);
 
   const busy = session === "recording" || session === "processing";
+  const recording = session === "recording";
   const cameraReady = cameraStatus === "ready";
   const signSequence =
-    result?.glosses && result.glosses.length > 1
-      ? result.glosses.map((item) => (item.glossLabel || item.gloss).toUpperCase())
+    result?.glosses && result.glosses.length > 1 ? result.glosses : null;
+  const singleGloss: DedicatedTop | null =
+    !signSequence && result && (result.glossLabel || result.gloss)
+      ? {
+          gloss: result.gloss ?? "",
+          glossLabel: result.glossLabel || result.gloss || "",
+          confidence: result.confidence ?? Number.NaN,
+        }
       : null;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-      {mode === "mock" ? (
-        <Alert className="border-primary/30 bg-primary/8 lg:col-span-2">
-          <Sparkles />
-          <AlertTitle>Mock translation is on</AlertTitle>
-          <AlertDescription>
-            No Gemini API key is configured. A confident dedicated-model gloss
-            still becomes dictionary English; the Gemini video path returns a
-            sample sentence. Add{" "}
-            <code className="rounded bg-background/60 px-1 py-0.5 font-mono text-xs">
-              GEMINI_API_KEY
-            </code>{" "}
-            in <span className="font-medium text-foreground">.env.local</span>{" "}
-            for live ASL interpretation.
-          </AlertDescription>
-        </Alert>
-      ) : null}
-
-      <Card className="overflow-hidden bg-card/80">
-        <CardHeader className="border-b">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <CardTitle>Camera</CardTitle>
-              <CardDescription>
-                Face the camera and sign one word, or a few words with a short
-                pause after each, then stop. Recording auto-stops after{" "}
-                {RECORD_SECONDS} seconds.
-              </CardDescription>
-            </div>
-            <div className="flex flex-col items-end gap-1">
-              {session === "recording" ? (
-                <Badge variant="destructive" className="h-6 gap-1.5">
-                  <span className="record-dot size-1.5 rounded-full bg-current" />
-                  Recording {secondsLeft}s
-                </Badge>
-              ) : cameraReady ? (
-                <Badge variant="secondary">Live preview</Badge>
-              ) : null}
-              {trackerStatus === "ready" || trackerStatus === "sampling" ? (
-                <Badge variant="outline" className="h-6">
-                  Landmarks ready
-                </Badge>
-              ) : trackerStatus === "loading" ? (
-                <Badge variant="outline" className="h-6">
-                  Loading landmarks…
-                </Badge>
-              ) : null}
-              <Badge variant="outline" className="h-6 border-primary/30 text-primary">
-                {DEDICATED_MODEL_LABEL}
-              </Badge>
-              <Button
-                type="button"
-                size="xs"
-                variant={showTracking ? "secondary" : "outline"}
-                aria-pressed={showTracking}
-                onClick={toggleShowTracking}
-              >
-                Show tracking
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="relative overflow-hidden rounded-xl bg-black ring-1 ring-foreground/10">
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,1.12fr)_minmax(0,0.88fr)] lg:gap-10">
+        {/* On short laptop screens, shrink the camera so Start signing stays above the fold. */}
+        <section
+          aria-label="Camera"
+          className="min-w-0 space-y-4 lg:max-w-[max(28rem,calc((100svh-23.5rem)*4/3))]"
+        >
+          <div
+            className={cn(
+              "relative overflow-hidden rounded-[1.25rem] bg-black ring-1 ring-rule transition-shadow motion-reduce:transition-none",
+              recording && "ring-[3px] ring-record",
+            )}
+          >
             <video
               ref={videoRef}
               className="aspect-4/3 h-auto w-full -scale-x-100 object-cover"
@@ -425,44 +376,46 @@ export function SignStudio({ mode }: { mode: AppMode }) {
               draw={showTracking}
             />
             {!cameraReady ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/80 p-6 text-center">
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-backdrop/90 p-6 text-center">
                 {cameraStatus === "requesting" ? (
                   <>
-                    <LoaderCircle className="size-6 animate-spin text-primary" />
-                    <p className="text-sm text-muted-foreground">
-                      Waiting for camera permission…
-                    </p>
+                    <LoaderCircle className="size-6 animate-spin text-signal" aria-hidden="true" />
+                    <p className="text-mist">Waiting for camera permission…</p>
                   </>
                 ) : (
                   <>
-                    <Camera className="size-8 text-muted-foreground" />
-                    <p className="max-w-sm text-sm text-muted-foreground">
-                      {cameraError || "Enable the camera to start signing."}
+                    <Camera className="size-8 text-mist" aria-hidden="true" />
+                    <p className="max-w-sm text-mist">
+                      {cameraError || "Turn on the camera to start signing."}
                     </p>
-                    <Button onClick={() => void start()} size="lg">
-                      Enable camera
+                    <Button
+                      onClick={() => void start()}
+                      size="lg"
+                      className="h-11 rounded-full px-5 text-base font-bold"
+                    >
+                      Turn on camera
                     </Button>
                   </>
                 )}
               </div>
             ) : null}
-            {session === "recording" && lowHandCoverage ? (
+            {recording && lowHandCoverage ? (
               <p
-                className="pointer-events-none absolute inset-x-3 bottom-3 rounded-lg bg-background/90 px-3 py-2 text-center text-sm font-medium text-foreground shadow-sm ring-1 ring-foreground/10"
+                className="pointer-events-none absolute inset-x-3 bottom-3 z-20 mx-auto w-fit rounded-full bg-backdrop/90 px-4 py-2 text-center font-bold text-chalk ring-1 ring-signal/60"
                 role="status"
               >
                 Keep both hands in frame
               </p>
             ) : null}
             {session === "processing" ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/70">
-                <LoaderCircle className="size-7 animate-spin text-primary" />
-                <p className="text-sm font-medium">
+              <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-2 bg-backdrop/80 p-6 text-center">
+                <LoaderCircle className="size-7 animate-spin text-signal" aria-hidden="true" />
+                <p className="font-bold text-chalk">
                   {processingLongClip
                     ? "Reading the signs in order…"
                     : "Reading the signing…"}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="max-w-[44ch] text-sm text-mist">
                   {processingLongClip
                     ? "Long clips are split into single signs first; unclear ones use Gemini video, which can take a few seconds"
                     : "Short isolated signs use the dedicated model; longer clips are split into signs"}
@@ -470,17 +423,258 @@ export function SignStudio({ mode }: { mode: AppMode }) {
               </div>
             ) : null}
           </div>
-          <p className="mt-3 text-xs text-muted-foreground">
-            Preview is mirrored so it feels like a mirror. The tracking overlay
-            uses the same MediaPipe landmarks as the dedicated model and is not
-            saved into the clip. For the dedicated model, sign one vocab sign,
-            or several with a half-second pause between them (hold still or
-            lower your hands). Songs and conversation fall back to Gemini video.
-          </p>
+
+          <ClipTimeline
+            session={session}
+            secondsLeft={secondsLeft}
+            clipMs={clipMs}
+          />
+
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-4">
+            <Button
+              size="lg"
+              className={cn(
+                "h-12 min-w-44 flex-1 rounded-full px-6 text-base font-bold sm:flex-none",
+                recording &&
+                  "bg-record text-backdrop hover:bg-record/85 focus-visible:ring-record/50",
+              )}
+              onClick={recording ? stopRecording : startRecording}
+              disabled={!recording && (!cameraReady || busy)}
+            >
+              {recording ? (
+                <span className="size-3 rounded-[3px] bg-backdrop" aria-hidden="true" />
+              ) : (
+                <span
+                  className="size-3 rounded-full bg-record ring-2 ring-backdrop/80"
+                  aria-hidden="true"
+                />
+              )}
+              {recording ? "Stop signing" : "Start signing"}
+            </Button>
+            <Button
+              size="lg"
+              variant="ghost"
+              className="h-12 rounded-full px-4 text-base text-chalk"
+              onClick={resetOutput}
+              disabled={busy}
+            >
+              <RotateCcw data-icon="inline-start" aria-hidden="true" />
+              Clear
+            </Button>
+            <TrackingSwitch
+              on={showTracking}
+              onToggle={toggleShowTracking}
+              className="ml-auto"
+            />
+          </div>
+
+          <div className="space-y-2 border-t border-rule pt-4 text-sm leading-6 text-mist">
+            <p className="flex flex-wrap gap-x-6 gap-y-1">
+              <TrackerState status={trackerStatus} />
+              <span>{DEDICATED_MODEL_LABEL}</span>
+            </p>
+            <p className="max-w-[64ch]">
+              The preview is mirrored, like a mirror. The tracking overlay uses
+              the same MediaPipe landmarks as the dedicated model and is not
+              saved into the clip.
+            </p>
+          </div>
+        </section>
+
+        <section aria-labelledby="translation-heading" className="min-w-0 space-y-6">
+          <div className="overflow-hidden rounded-[0.875rem] bg-panel ring-1 ring-rule">
+            <div className="flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 py-3">
+              <h2 id="translation-heading" className="font-bold">
+                Translation
+              </h2>
+              {result ? (
+                <ul aria-label="How this clip was read" className="flex flex-wrap gap-1.5">
+                  {result.source === "dedicated" ? (
+                    <>
+                      <SourceTag tone="trace">Dedicated model</SourceTag>
+                      {signSequence ? <SourceTag>Several signs</SourceTag> : null}
+                    </>
+                  ) : result.mock ? (
+                    <SourceTag tone="signal">Mock sample</SourceTag>
+                  ) : (
+                    <SourceTag tone="chalk">Gemini video</SourceTag>
+                  )}
+                  {result.mock && result.source === "dedicated" ? (
+                    <SourceTag>Dictionary English</SourceTag>
+                  ) : null}
+                  {result.unclear ? <SourceTag>Signing unclear</SourceTag> : null}
+                </ul>
+              ) : null}
+            </div>
+
+            {mode === "mock" ? (
+              <div
+                role="note"
+                className="flex gap-3 border-t border-signal/30 bg-signal/8 px-5 py-3.5"
+              >
+                <Sparkles className="mt-1 size-4 shrink-0 text-signal" aria-hidden="true" />
+                <div className="space-y-0.5">
+                  <p className="font-bold text-chalk">Mock translation is on</p>
+                  <p className="text-sm leading-6 text-mist">
+                    No Gemini API key is configured. A confident dedicated-model
+                    gloss still becomes dictionary English; the Gemini video path
+                    returns a sample sentence. Add{" "}
+                    <code className="rounded bg-backdrop/70 px-1 py-0.5 font-mono text-xs text-chalk">
+                      GEMINI_API_KEY
+                    </code>{" "}
+                    in <span className="font-bold text-chalk">.env.local</span>{" "}
+                    for live ASL interpretation.
+                  </p>
+                </div>
+              </div>
+            ) : null}
+
+            <div aria-live="assertive" aria-atomic="true">
+              <Tier label="Gloss">
+                {session === "processing" ? (
+                  <div className="flex gap-4 pt-1" aria-label="Reading signs">
+                    <Skeleton className="h-7 w-20 bg-panel-raised" />
+                    <Skeleton className="h-7 w-16 bg-panel-raised" />
+                    <Skeleton className="h-7 w-24 bg-panel-raised" />
+                  </div>
+                ) : signSequence ? (
+                  <div className="space-y-3">
+                    <GlossList items={signSequence} />
+                    {result?.segments &&
+                    result.segments.confident < result.segments.total ? (
+                      <p className="text-sm text-mist">
+                        Skipped{" "}
+                        {result.segments.total - result.segments.confident}{" "}
+                        unclear{" "}
+                        {result.segments.total - result.segments.confident === 1
+                          ? "part"
+                          : "parts"}{" "}
+                        of the clip
+                      </p>
+                    ) : null}
+                  </div>
+                ) : singleGloss ? (
+                  <GlossList items={[singleGloss]} />
+                ) : result ? (
+                  <div className="space-y-1.5 text-mist">
+                    <p className="text-chalk">
+                      {result.mock
+                        ? "No glosses. This is a sample sentence."
+                        : "No glosses. Gemini read the full video."}
+                    </p>
+                    {result.dedicatedTop ? (
+                      <p className="text-sm leading-6">
+                        The dedicated model was unsure
+                        {result.dedicatedTop.glossLabel ? (
+                          <>
+                            {": best guess "}
+                            <span className="gloss text-chalk">
+                              {result.dedicatedTop.glossLabel}
+                            </span>{" "}
+                            at{" "}
+                            <span className="tabular">
+                              {(result.dedicatedTop.confidence * 100).toFixed(0)}%
+                            </span>
+                          </>
+                        ) : null}
+                        .
+                      </p>
+                    ) : null}
+                    {result.fallbackReason ? (
+                      <p className="text-sm leading-6">{result.fallbackReason}</p>
+                    ) : null}
+                  </div>
+                ) : session === "error" ? (
+                  <p className="text-mist">No signs were read from this clip.</p>
+                ) : (
+                  <p className="text-mist">
+                    Signs show up here as glosses, in the order you sign them.
+                  </p>
+                )}
+              </Tier>
+
+              <Tier label="English">
+                {session === "processing" ? (
+                  <div className="space-y-3 pt-1">
+                    <Skeleton className="h-8 w-full bg-panel-raised" />
+                    <Skeleton className="h-8 w-3/5 bg-panel-raised" />
+                  </div>
+                ) : result ? (
+                  <div className="space-y-2">
+                    <p className="text-[1.75rem] leading-[1.15] font-extrabold tracking-[-0.015em] text-balance text-chalk sm:text-4xl">
+                      {result.english}
+                    </p>
+                    {result.unclear && result.reason ? (
+                      <p className="text-sm leading-6 text-mist">{result.reason}</p>
+                    ) : null}
+                  </div>
+                ) : session === "error" ? (
+                  <Alert
+                    variant="destructive"
+                    className="border-record/40 bg-record/10 px-3.5 py-3"
+                  >
+                    <AlertCircle />
+                    <AlertTitle className="font-bold text-record">Could not translate</AlertTitle>
+                    <AlertDescription className="text-chalk/90!">
+                      <p>
+                        {error}
+                        {/busy|rate-limited|try again/i.test(error)
+                          ? null
+                          : " You can tap Sign again."}
+                      </p>
+                      {skipNote ? <p>{skipNote}</p> : null}
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <p className="text-mist">
+                    Your English translation will show up here.
+                  </p>
+                )}
+              </Tier>
+            </div>
+
+            <Tier label="Voice">
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="h-11 rounded-full border-rule bg-transparent px-4 text-base dark:bg-transparent"
+                    onClick={() => result && speak(result.english)}
+                    disabled={!result || speaking}
+                  >
+                    <Volume2
+                      data-icon="inline-start"
+                      className="text-signal"
+                      aria-hidden="true"
+                    />
+                    {speaking ? "Speaking…" : "Replay voice"}
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="ghost"
+                    className="h-11 rounded-full px-4 text-base text-chalk"
+                    onClick={startRecording}
+                    disabled={!cameraReady || busy}
+                  >
+                    Sign again
+                  </Button>
+                </div>
+                {speechError ? (
+                  <p className="text-sm text-record">{speechError}</p>
+                ) : (
+                  <p className="text-sm text-mist">
+                    The English is spoken aloud as soon as it appears.
+                  </p>
+                )}
+              </div>
+            </Tier>
+          </div>
+
           {replayUrl ? (
-            <div className="mt-3 space-y-2">
-              <p className="text-xs font-medium text-foreground">Last clip</p>
-              <div className="relative overflow-hidden rounded-xl bg-black ring-1 ring-foreground/10">
+            <div className="space-y-2">
+              <h3 className="text-sm font-bold text-mist">Last clip</h3>
+              <div className="relative overflow-hidden rounded-[0.875rem] bg-black ring-1 ring-rule">
                 <video
                   ref={replayVideoRef}
                   className="aspect-4/3 h-auto w-full object-cover"
@@ -501,182 +695,251 @@ export function SignStudio({ mode }: { mode: AppMode }) {
                 ) : null}
               </div>
             </div>
-          ) : null}
-        </CardContent>
-        <CardFooter className="flex flex-col gap-2 sm:flex-row">
-          {session === "recording" ? (
-            <Button
-              size="lg"
-              variant="destructive"
-              className="h-12 w-full flex-1 text-base"
-              onClick={stopRecording}
-            >
-              <CircleStop data-icon="inline-start" />
-              Stop signing
-            </Button>
           ) : (
-            <Button
-              size="lg"
-              className="h-12 w-full flex-1 text-base"
-              onClick={startRecording}
-              disabled={!cameraReady || busy}
-            >
-              <Camera data-icon="inline-start" />
-              Start signing
-            </Button>
+            <div className="space-y-2 px-1">
+              <h3 className="text-sm font-bold text-mist">Before you start</h3>
+              <ul className="space-y-1.5 text-chalk">
+                {CHECKLIST.map((item) => (
+                  <li key={item} className="flex gap-3">
+                    <span
+                      className="mt-[0.6em] size-1.5 shrink-0 rounded-full bg-signal"
+                      aria-hidden="true"
+                    />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
-          <Button
-            size="lg"
-            variant="outline"
-            className="h-12 w-full sm:w-auto"
-            onClick={resetOutput}
-            disabled={busy}
-          >
-            <RotateCcw data-icon="inline-start" />
-            Clear
-          </Button>
-        </CardFooter>
-      </Card>
+        </section>
+    </div>
+  );
+}
 
-      <Card className="bg-card/80">
-        <CardHeader className="border-b">
-          <CardTitle>English translation</CardTitle>
-          <CardDescription>
-            After you stop, the English text appears here and is spoken aloud.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex min-h-56 flex-1 flex-col gap-4">
+const CHECKLIST = [
+  "Unmute your speakers so the English can be spoken.",
+  "Keep both hands in the frame.",
+  "Between signs, hold still or lower your hands for half a second.",
+];
+
+/** One annotation tier: a name in the gutter, its content beside it. */
+function Tier({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="grid gap-x-5 gap-y-2 border-t border-rule px-5 py-5 sm:grid-cols-[4.5rem_minmax(0,1fr)]">
+      <p className="text-sm font-bold text-mist sm:pt-1">{label}</p>
+      <div className="min-w-0">{children}</div>
+    </div>
+  );
+}
+
+/** Glosses in signed order, each with the model's confidence as a bar. */
+function GlossList({ items }: { items: DedicatedTop[] }) {
+  return (
+    <ol aria-label="Signs read, in order" className="flex flex-wrap gap-x-6 gap-y-4">
+      {items.map((item, index) => {
+        const label = item.glossLabel || item.gloss;
+        const hasConfidence = Number.isFinite(item.confidence);
+        const pct = hasConfidence
+          ? Math.round(Math.min(1, Math.max(0, item.confidence)) * 100)
+          : null;
+        return (
+          <li key={`${label}-${index}`} className="min-w-16 space-y-1.5">
+            <span className="gloss block text-[1.75rem] leading-none text-chalk">
+              {label}
+            </span>
+            {pct !== null ? (
+              <span className="flex items-center gap-2">
+                <span
+                  className="relative h-1 min-w-10 flex-1 overflow-hidden rounded-full bg-rule"
+                  aria-hidden="true"
+                >
+                  <span
+                    className="absolute inset-y-0 left-0 rounded-full bg-trace"
+                    style={{ width: `${pct}%` }}
+                  />
+                </span>
+                <span className="text-sm text-mist tabular">
+                  {pct}%<span className="sr-only"> confidence</span>
+                </span>
+              </span>
+            ) : null}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function SourceTag({
+  children,
+  tone,
+}: {
+  children: React.ReactNode;
+  tone?: "trace" | "signal" | "chalk";
+}) {
+  return (
+    <li className="inline-flex items-center gap-1.5 rounded-full border border-rule px-2.5 py-0.5 text-xs font-bold text-chalk">
+      {tone ? (
+        <span
+          className={cn(
+            "size-1.5 rounded-full",
+            tone === "trace" && "bg-trace",
+            tone === "signal" && "bg-signal",
+            tone === "chalk" && "bg-chalk",
+          )}
+          aria-hidden="true"
+        />
+      ) : null}
+      {children}
+    </li>
+  );
+}
+
+function TrackerState({
+  status,
+}: {
+  status: ReturnType<typeof useLandmarkTracker>["status"];
+}) {
+  if (status === "ready" || status === "sampling") {
+    return (
+      <span className="inline-flex items-center gap-2 text-chalk">
+        <span className="size-2 rounded-full bg-trace" aria-hidden="true" />
+        Hand tracking ready
+      </span>
+    );
+  }
+  if (status === "loading") {
+    return (
+      <span className="inline-flex items-center gap-2">
+        <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />
+        Loading hand tracking…
+      </span>
+    );
+  }
+  if (status === "error") {
+    return <span>Hand tracking is off; clips go to Gemini video</span>;
+  }
+  return <span>Hand tracking starts with the camera</span>;
+}
+
+function TrackingSwitch({
+  on,
+  onToggle,
+  className,
+}: {
+  on: boolean;
+  onToggle: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      onClick={onToggle}
+      className={cn(
+        "inline-flex items-center gap-2.5 rounded-full py-1.5 pr-1 text-sm font-bold text-mist hover:text-chalk",
+        className,
+      )}
+    >
+      Show tracking
+      <span
+        className={cn(
+          "relative h-6 w-10 rounded-full transition-colors motion-reduce:transition-none",
+          on ? "bg-trace" : "bg-rule",
+        )}
+        aria-hidden="true"
+      >
+        <span
+          className={cn(
+            "absolute top-1 left-1 size-4 rounded-full bg-backdrop transition-transform motion-reduce:transition-none",
+            on ? "translate-x-4" : "translate-x-0 bg-mist",
+          )}
+        />
+      </span>
+    </button>
+  );
+}
+
+/**
+ * Clip length against the routing budget: up to ~8 s is read as one sign,
+ * longer clips (to 30 s) are split into signs at pauses.
+ */
+function ClipTimeline({
+  session,
+  secondsLeft,
+  clipMs,
+}: {
+  session: string;
+  secondsLeft: number;
+  clipMs: number;
+}) {
+  const recording = session === "recording";
+  const elapsedS = recording
+    ? RECORD_SECONDS - secondsLeft
+    : clipMs > 0
+      ? clipMs / 1000
+      : 0;
+  const pct = Math.min(100, (elapsedS / RECORD_SECONDS) * 100);
+  const splitPct = (LONG_CLIP_HINT_MS / 1000 / RECORD_SECONDS) * 100;
+  const splitSeconds = Math.round(LONG_CLIP_HINT_MS / 1000);
+
+  let leftLabel: React.ReactNode = "Clip length";
+  let rightLabel: React.ReactNode = `up to ${RECORD_SECONDS} s`;
+  if (recording) {
+    leftLabel = (
+      <span className="inline-flex items-center gap-2 font-bold text-chalk">
+        <span className="record-dot size-2 rounded-full bg-record" aria-hidden="true" />
+        Recording
+      </span>
+    );
+    rightLabel = <span className="text-chalk">{secondsLeft} s left</span>;
+  } else if (clipMs > 0) {
+    leftLabel = session === "processing" ? "Reading this clip" : "Last clip";
+    rightLabel = <span className="text-chalk">{(clipMs / 1000).toFixed(1)} s</span>;
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-baseline justify-between text-sm text-mist tabular">
+        <span>{leftLabel}</span>
+        <span>{rightLabel}</span>
+      </div>
+      <div className="relative">
+        <div
+          role="progressbar"
+          aria-label="Clip length"
+          aria-valuemin={0}
+          aria-valuemax={RECORD_SECONDS}
+          aria-valuenow={Math.round(elapsedS)}
+          aria-valuetext={`${Math.round(elapsedS)} of ${RECORD_SECONDS} seconds`}
+          className="relative h-2 overflow-hidden rounded-full bg-panel-raised"
+        >
           <div
-            className="flex flex-1 flex-col justify-center rounded-xl bg-muted/40 p-5 ring-1 ring-foreground/8"
-            aria-live="assertive"
-            aria-atomic="true"
-          >
-            {session === "processing" ? (
-              <div className="space-y-3">
-                <Skeleton className="h-5 w-24" />
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-4/5" />
-              </div>
-            ) : result ? (
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  {result.source === "dedicated" ? (
-                    <>
-                      <Badge>Dedicated model</Badge>
-                      <Badge variant="outline">{DEDICATED_MODEL_LABEL}</Badge>
-                      {signSequence ? (
-                        <Badge variant="secondary">Several signs</Badge>
-                      ) : null}
-                    </>
-                  ) : result.mock ? (
-                    <Badge variant="outline">Mock sample</Badge>
-                  ) : (
-                    <Badge variant="secondary">Gemini video</Badge>
-                  )}
-                  {result.mock && result.source === "dedicated" ? (
-                    <Badge variant="outline">Dictionary English</Badge>
-                  ) : null}
-                  {result.unclear ? (
-                    <Badge variant="secondary">Signing unclear</Badge>
-                  ) : null}
-                </div>
-                {signSequence ? (
-                  <div className="space-y-1">
-                    <p
-                      className="text-sm font-medium tracking-wide text-foreground"
-                      aria-label={`Signs read: ${signSequence.join(", ")}`}
-                    >
-                      {signSequence.join(" · ")}
-                    </p>
-                    {result.segments &&
-                    result.segments.confident < result.segments.total ? (
-                      <p className="text-xs text-muted-foreground">
-                        Skipped{" "}
-                        {result.segments.total - result.segments.confident}{" "}
-                        unclear{" "}
-                        {result.segments.total - result.segments.confident === 1
-                          ? "part"
-                          : "parts"}{" "}
-                        of the clip
-                      </p>
-                    ) : null}
-                  </div>
-                ) : result.glossLabel || result.gloss ? (
-                  <p className="text-sm text-muted-foreground">
-                    Gloss{" "}
-                    <span className="font-medium text-foreground">
-                      {result.glossLabel || result.gloss}
-                    </span>
-                    {typeof result.confidence === "number"
-                      ? ` · ${(result.confidence * 100).toFixed(0)}% confidence`
-                      : null}
-                  </p>
-                ) : result.dedicatedTop ? (
-                  <p className="text-sm text-muted-foreground">
-                    Dedicated model was unsure
-                    {result.dedicatedTop.glossLabel
-                      ? ` (${result.dedicatedTop.glossLabel} ${(result.dedicatedTop.confidence * 100).toFixed(0)}%)`
-                      : null}
-                    {result.fallbackReason ? ` — ${result.fallbackReason}` : ""}
-                  </p>
-                ) : result.fallbackReason ? (
-                  <p className="text-sm text-muted-foreground">
-                    {result.fallbackReason}
-                  </p>
-                ) : null}
-                <p className="font-heading text-2xl leading-snug font-medium tracking-tight sm:text-3xl">
-                  {result.english}
-                </p>
-                {result.unclear && result.reason ? (
-                  <p className="text-sm text-muted-foreground">{result.reason}</p>
-                ) : null}
-              </div>
-            ) : session === "error" ? (
-              <Alert variant="destructive">
-                <AlertCircle />
-                <AlertTitle>Could not translate</AlertTitle>
-                <AlertDescription>
-                  <p>
-                    {error}
-                    {/busy|rate-limited|try again/i.test(error)
-                      ? null
-                      : " You can tap Sign again."}
-                  </p>
-                  {skipNote ? <p>{skipNote}</p> : null}
-                </AlertDescription>
-              </Alert>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Your English translation will show up here.
-              </p>
+            className={cn(
+              "absolute inset-y-0 left-0 rounded-full",
+              recording
+                ? "bg-record transition-[width] duration-1000 ease-linear motion-reduce:transition-none"
+                : "bg-mist/70",
             )}
-          </div>
-
-          {speechError ? (
-            <p className="text-sm text-destructive">{speechError}</p>
-          ) : null}
-        </CardContent>
-        <CardFooter className="flex flex-col gap-2 sm:flex-row">
-          <Button
-            size="lg"
-            className="h-12 w-full flex-1 text-base"
-            onClick={() => result && speak(result.english)}
-            disabled={!result || speaking}
-          >
-            <Volume2 data-icon="inline-start" />
-            {speaking ? "Speaking…" : "Replay voice"}
-          </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            className="h-12 w-full sm:w-auto"
-            onClick={startRecording}
-            disabled={!cameraReady || busy}
-          >
-            Sign again
-          </Button>
-        </CardFooter>
-      </Card>
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        <span
+          className="absolute -top-1 h-4 w-0.5 -translate-x-1/2 rounded-full bg-chalk/70"
+          style={{ left: `${splitPct}%` }}
+          aria-hidden="true"
+        />
+      </div>
+      <div
+        className="grid text-xs leading-5 text-mist"
+        style={{ gridTemplateColumns: `${splitPct}% minmax(0, 1fr)` }}
+      >
+        <span className="pr-2">
+          One sign<span className="hidden sm:inline">, up to {splitSeconds} s</span>
+        </span>
+        <span className="pl-2">Several signs, with a pause after each</span>
+      </div>
     </div>
   );
 }
