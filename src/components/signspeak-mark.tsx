@@ -1,10 +1,11 @@
 import { HAND_CONNECTIONS } from "@/lib/landmark-overlay";
 
 /**
- * An open "5" hand drawn on MediaPipe's 21-point hand topology: the same
- * skeleton the tracking overlay draws on camera.
+ * An open "5" hand on MediaPipe's 21-point hand topology: the same skeleton
+ * the tracking overlay draws on camera. Shared by the logo mark and the
+ * landing hero illustration.
  */
-const HAND_POINTS: ReadonlyArray<readonly [number, number]> = [
+export const HAND_POINTS: ReadonlyArray<readonly [number, number]> = [
   [15, 29],
   [10.5, 26],
   [7.5, 22.5],
@@ -28,7 +29,7 @@ const HAND_POINTS: ReadonlyArray<readonly [number, number]> = [
   [27.3, 10.5],
 ];
 
-const FINGERTIPS = [4, 8, 12, 16, 20] as const;
+export const FINGERTIPS = [4, 8, 12, 16, 20] as const;
 
 export function SignSpeakMark({ className }: { className?: string }) {
   return (
@@ -41,7 +42,7 @@ export function SignSpeakMark({ className }: { className?: string }) {
     >
       <g
         stroke="currentColor"
-        strokeWidth={1.5}
+        strokeWidth={1.6}
         strokeLinecap="round"
         strokeLinejoin="round"
       >
@@ -60,11 +61,10 @@ export function SignSpeakMark({ className }: { className?: string }) {
           key={i}
           cx={HAND_POINTS[i][0]}
           cy={HAND_POINTS[i][1]}
-          r={1.9}
-          fill="var(--trace)"
+          r={2}
+          fill="var(--flamingo)"
         />
       ))}
-      <circle cx={HAND_POINTS[0][0]} cy={HAND_POINTS[0][1]} r={1.9} fill="var(--signal)" />
     </svg>
   );
 }

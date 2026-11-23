@@ -15,15 +15,15 @@ export default function DemoPage() {
   return (
     <div className="flex min-h-full flex-col">
       <SiteHeader />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-8 pb-14 sm:px-6 sm:pt-10">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-8 pb-14 sm:px-6 sm:pt-9">
         <div className="mb-8 grid gap-3 lg:grid-cols-[minmax(0,1.12fr)_minmax(0,0.88fr)] lg:items-end lg:gap-10">
-          <h1 className="text-4xl leading-[1.1] font-bold tracking-tight sm:text-5xl">
+          <h1 className="poster text-[clamp(3.25rem,6vw,5rem)]">
             Sign, then listen
           </h1>
-          <p className="max-w-[54ch] leading-relaxed text-mist">
-            Sign one word from the 200-sign vocabulary, like hello, lunch or
-            Coca-Cola, or several with a short pause after each. Songs and
-            fluent conversation go to Gemini video instead.
+          <p className="max-w-[50ch] text-lg leading-relaxed font-medium">
+            Sign one word from the 200-sign vocabulary, like hello or lunch,
+            or several with a short pause after each. Songs and conversation
+            go to Gemini video.
           </p>
         </div>
         <SignStudio mode={isMockMode() ? "mock" : "live"} />

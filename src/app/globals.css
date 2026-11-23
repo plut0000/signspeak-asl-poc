@@ -5,26 +5,23 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * SignSpeak palette: the interpreter's backdrop.
- * Interpreters wear solid dark colors so hands read clearly; the page does the
- * same. The two accents are the hand colors the tracking overlay draws
- * (src/lib/landmark-overlay.ts), so the UI matches the skeleton on camera.
+ * SignSpeak palette: a postcard.
+ * Front (picture side): Postcard Blue with Porcelain White type.
+ * Back (writing side): Porcelain White with Harbor Ink type.
+ * Flamingo Coral is a fill only (sun, stamp, record dot, bars): it is 2.2:1
+ * on blue, so it never carries text there. Text on coral uses ink.
  */
 @theme inline {
-  --color-backdrop: var(--backdrop);
-  --color-panel: var(--panel);
-  --color-panel-raised: var(--panel-raised);
-  --color-rule: var(--rule);
-  --color-chalk: var(--chalk);
-  --color-mist: var(--mist);
-  --color-signal: var(--signal);
-  --color-trace: var(--trace);
-  --color-record: var(--record);
+  --color-postcard: var(--postcard);
+  --color-porcelain: var(--porcelain);
+  --color-flamingo: var(--flamingo);
+  --color-ink: var(--ink);
+  --color-glass-text: var(--glass-text);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-atkinson), ui-sans-serif, system-ui, sans-serif;
-  --font-heading: var(--font-atkinson), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
   --font-gloss: var(--font-spectral-sc), ui-serif, Georgia, serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 
@@ -70,60 +67,58 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* The app always renders dark; both selectors carry the same palette. */
+/* One palette; the app has no light/dark switch. */
 :root,
 .dark {
-  --backdrop: #1d1b34;
-  --panel: #252342;
-  --panel-raised: #2e2b50;
-  --rule: #3b3862;
-  --chalk: #f1eee6;
-  --mist: #aba7c9;
-  --signal: #f5a524;
-  --trace: #4fd6e6;
-  --record: #ff5d5d;
+  --postcard: #0672e1;
+  --porcelain: #fefefe;
+  --flamingo: #fb9586;
+  --ink: #08306b;
+  /* Secondary text on glass panels only (5:1 there; too faint on bare blue). */
+  --glass-text: #d6e7ff;
+  --focus-ring: var(--porcelain);
 
-  --background: var(--backdrop);
-  --foreground: var(--chalk);
-  --card: var(--panel);
-  --card-foreground: var(--chalk);
-  --popover: var(--panel);
-  --popover-foreground: var(--chalk);
-  --primary: var(--signal);
-  --primary-foreground: var(--backdrop);
-  --secondary: var(--panel-raised);
-  --secondary-foreground: var(--chalk);
-  --muted: var(--panel-raised);
-  --muted-foreground: var(--mist);
-  --accent: var(--panel-raised);
-  --accent-foreground: var(--chalk);
-  --destructive: var(--record);
-  --border: var(--rule);
-  --input: var(--rule);
-  --ring: var(--signal);
-  --chart-1: var(--trace);
-  --chart-2: var(--signal);
-  --chart-3: var(--mist);
-  --chart-4: var(--rule);
-  --chart-5: var(--panel-raised);
+  --background: var(--postcard);
+  --foreground: var(--porcelain);
+  --card: var(--porcelain);
+  --card-foreground: var(--ink);
+  --popover: var(--porcelain);
+  --popover-foreground: var(--ink);
+  --primary: var(--porcelain);
+  --primary-foreground: var(--ink);
+  --secondary: color-mix(in oklab, var(--ink) 30%, var(--postcard));
+  --secondary-foreground: var(--porcelain);
+  --muted: color-mix(in oklab, var(--ink) 10%, var(--porcelain));
+  --muted-foreground: color-mix(in oklab, var(--ink) 72%, var(--porcelain));
+  --accent: color-mix(in oklab, var(--ink) 30%, var(--postcard));
+  --accent-foreground: var(--porcelain);
+  --destructive: var(--flamingo);
+  --border: color-mix(in oklab, var(--porcelain) 28%, transparent);
+  --input: color-mix(in oklab, var(--porcelain) 28%, transparent);
+  --ring: var(--porcelain);
+  --chart-1: var(--postcard);
+  --chart-2: var(--flamingo);
+  --chart-3: var(--ink);
+  --chart-4: var(--glass-text);
+  --chart-5: var(--porcelain);
   --radius: 0.625rem;
-  --sidebar: var(--panel);
-  --sidebar-foreground: var(--chalk);
-  --sidebar-primary: var(--signal);
-  --sidebar-primary-foreground: var(--backdrop);
-  --sidebar-accent: var(--panel-raised);
-  --sidebar-accent-foreground: var(--chalk);
-  --sidebar-border: var(--rule);
-  --sidebar-ring: var(--signal);
+  --sidebar: var(--porcelain);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--postcard);
+  --sidebar-primary-foreground: var(--porcelain);
+  --sidebar-accent: var(--muted);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: color-mix(in oklab, var(--ink) 14%, transparent);
+  --sidebar-ring: var(--ink);
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
   html {
     @apply font-sans;
-    color-scheme: dark;
+    color-scheme: light;
   }
   body {
     @apply bg-background text-foreground;
@@ -132,16 +127,39 @@
     font-feature-settings: "kern", "liga";
   }
   ::selection {
-    background: color-mix(in oklab, var(--signal) 40%, transparent);
-    color: var(--chalk);
+    background: var(--flamingo);
+    color: var(--ink);
   }
+  /* White ring on the blue front; ink ring on the white back (.side-back). */
   :focus-visible {
-    outline: 2px solid var(--signal);
+    outline: 2px solid var(--focus-ring);
     outline-offset: 3px;
   }
 }
 
 @layer components {
+  /* The writing side of the postcard: white paper, ink type. */
+  .side-back {
+    --focus-ring: var(--ink);
+    background: var(--porcelain);
+    color: var(--ink);
+  }
+
+  /* Poster headlines: Archivo at its narrowest width, heaviest weight. */
+  .poster {
+    font-family: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+    font-variation-settings: "wdth" 62;
+    font-weight: 900;
+    text-transform: uppercase;
+    line-height: 0.86;
+    letter-spacing: -0.005em;
+  }
+
+  /* Condensed but not poster-loud: the spoken English output. */
+  .condensed {
+    font-variation-settings: "wdth" 72;
+  }
+
   /*
    * Gloss notation. ASL glosses are conventionally set in small caps; the text
    * is lowercase in the DOM (so screen readers say words, not letters) and
@@ -158,10 +176,24 @@
   .tabular {
     font-variant-numeric: tabular-nums;
   }
+
+  /* Postage-stamp edge: scalloped perforations cut from a coral square. */
+  .stamp {
+    --perf: 6px;
+    background: var(--flamingo);
+    -webkit-mask:
+      radial-gradient(circle at center, transparent 0 calc(var(--perf) * 0.32), #000 calc(var(--perf) * 0.36)) calc(var(--perf) / -2) calc(var(--perf) / -2) / var(--perf) var(--perf) round,
+      linear-gradient(#000 0 0) content-box;
+    mask:
+      radial-gradient(circle at center, transparent 0 calc(var(--perf) * 0.32), #000 calc(var(--perf) * 0.36)) calc(var(--perf) / -2) calc(var(--perf) / -2) / var(--perf) var(--perf) round,
+      linear-gradient(#000 0 0) content-box;
+    -webkit-mask-composite: source-over;
+    padding: calc(var(--perf) * 0.5);
+  }
 }
 
-/* Landing specimen: the alignment lines draw once, in signed order. */
-@keyframes align-draw {
+/* Hero hand: the skeleton draws itself once on load, wrist to fingertips. */
+@keyframes bone-draw {
   from {
     stroke-dashoffset: 1;
   }
@@ -170,7 +202,7 @@
   }
 }
 
-@keyframes align-land {
+@keyframes joint-pop {
   from {
     opacity: 0;
     transform: scale(0.2);
@@ -181,24 +213,38 @@
   }
 }
 
-.align-line {
+@keyframes sun-rise {
+  from {
+    transform: translateY(14%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.hand-bone {
   stroke-dasharray: 1;
   stroke-dashoffset: 0;
 }
 
-.align-dot {
+.hand-joint {
   transform-box: fill-box;
   transform-origin: center;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  [data-specimen-play="true"] .align-line {
-    animation: align-draw 650ms cubic-bezier(0.55, 0, 0.25, 1) both;
+  .hand-sun {
+    animation: sun-rise 900ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .hand-bone {
+    animation: bone-draw 520ms cubic-bezier(0.55, 0, 0.25, 1) both;
     animation-delay: var(--delay, 0ms);
   }
-  [data-specimen-play="true"] .align-dot {
-    animation: align-land 260ms ease-out both;
-    animation-delay: calc(var(--delay, 0ms) + 600ms);
+  .hand-joint {
+    animation: joint-pop 240ms ease-out both;
+    animation-delay: calc(var(--delay, 0ms) + 380ms);
   }
 }
 

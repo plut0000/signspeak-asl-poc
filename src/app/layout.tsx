@@ -1,14 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Atkinson_Hyperlegible_Next, Spectral_SC } from "next/font/google";
+import { Archivo, Spectral_SC } from "next/font/google";
 import "./globals.css";
 
-/** Braille Institute's legibility face: UI copy and the spoken English. */
-const atkinson = Atkinson_Hyperlegible_Next({
-  variable: "--font-atkinson",
+/** One family for poster headlines (narrowest width) and UI copy (normal width). */
+const archivo = Archivo({
+  variable: "--font-archivo",
   subsets: ["latin"],
-  // next/font has no fallback metrics for this family yet.
-  adjustFontFallback: false,
-  fallback: ["ui-sans-serif", "system-ui", "sans-serif"],
+  axes: ["wdth"],
 });
 
 /** True small caps for ASL gloss notation only. */
@@ -28,15 +26,15 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#1d1b34",
-  colorScheme: "dark",
+  themeColor: "#0672e1",
+  colorScheme: "light",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`dark ${atkinson.variable} ${spectralSc.variable} h-full antialiased`}
+      className={`${archivo.variable} ${spectralSc.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">{children}</body>
     </html>

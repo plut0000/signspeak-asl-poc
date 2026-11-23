@@ -169,14 +169,14 @@ export function LandmarkOverlay({
         role="status"
         aria-live="polite"
         aria-atomic="true"
-        className="pointer-events-none absolute top-3 left-3 z-20 rounded-full bg-backdrop/85 px-3 py-1 text-xs font-bold text-chalk ring-1 ring-rule"
+        className="pointer-events-none absolute top-3 left-3 z-20 rounded-full bg-ink/85 px-3 py-1 text-xs font-bold text-porcelain ring-1 ring-porcelain/20"
       >
         Hands: 0 · Body: not tracked
       </span>
       {SHOW_DEV_FPS ? (
         <span
           ref={fpsRef}
-          className="pointer-events-none absolute top-3 right-3 z-20 rounded-full bg-backdrop/85 px-2.5 py-1 font-mono text-[0.65rem] text-mist ring-1 ring-rule"
+          className="pointer-events-none absolute top-3 right-3 z-20 rounded-full bg-ink/85 px-2.5 py-1 font-mono text-[0.65rem] text-glass-text ring-1 ring-porcelain/20"
         >
           — draw · — det
         </span>
