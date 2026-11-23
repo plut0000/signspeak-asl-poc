@@ -1,43 +1,53 @@
-import { Badge } from "@/components/ui/badge";
 import { PATCH_NOTES } from "@/lib/patch-notes";
+import { ChevronDown } from "lucide-react";
 
 type PatchNotesProps = {
   compact?: boolean;
 };
 
 export function PatchNotes({ compact = false }: PatchNotesProps) {
-  return (
-    <details
-      open={!compact}
-      className={
-        compact
-          ? "rounded-xl border border-border/80 bg-card/70 px-4 py-3"
-          : "rounded-2xl border border-border/80 bg-card/70 px-5 py-4 sm:px-6"
-      }
-    >
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
-        <span className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
-          <Badge variant="outline" className="h-auto border-primary/30 px-2 py-0.5 text-[0.7rem] text-primary">
-            v{PATCH_NOTES.version}
-          </Badge>
-          <span className="font-heading text-sm font-semibold tracking-tight sm:text-base">
-            {PATCH_NOTES.title}
-          </span>
-        </span>
-        <span className="shrink-0 text-xs text-muted-foreground">
-          Patch notes
-        </span>
-      </summary>
-      <div className="mt-3 space-y-3 border-t border-border/70 pt-3">
-        <p className="text-sm leading-6 text-muted-foreground">
+  if (!compact) {
+    return (
+      <div className="space-y-4">
+        <p className="max-w-[62ch] text-lg leading-relaxed text-chalk">
           {PATCH_NOTES.summary}
         </p>
-        <ul className="list-disc space-y-1.5 pl-5 text-sm leading-6 text-muted-foreground">
-          {PATCH_NOTES.highlights.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
+        <NotesList />
+      </div>
+    );
+  }
+
+  return (
+    <details className="group border-t border-rule pt-4">
+      <summary className="flex w-fit cursor-pointer list-none items-center gap-2 rounded-md py-1 text-sm font-bold text-mist hover:text-chalk [&::-webkit-details-marker]:hidden">
+        <ChevronDown
+          className="size-4 -rotate-90 transition-transform group-open:rotate-0 motion-reduce:transition-none"
+          aria-hidden="true"
+        />
+        {PATCH_NOTES.title}
+      </summary>
+      <div className="mt-3 space-y-3 pl-6">
+        <p className="max-w-[68ch] text-sm leading-6 text-mist">
+          {PATCH_NOTES.summary}
+        </p>
+        <NotesList small />
       </div>
     </details>
+  );
+}
+
+function NotesList({ small = false }: { small?: boolean }) {
+  return (
+    <ul
+      className={
+        small
+          ? "max-w-[68ch] list-disc space-y-1.5 pl-5 text-sm leading-6 text-mist marker:text-rule"
+          : "max-w-[66ch] list-disc space-y-3 pl-5 leading-relaxed text-mist marker:text-signal"
+      }
+    >
+      {PATCH_NOTES.highlights.map((item) => (
+        <li key={item}>{item}</li>
+      ))}
+    </ul>
   );
 }

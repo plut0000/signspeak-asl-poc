@@ -1,10 +1,9 @@
 import { PatchNotes } from "@/components/patch-notes";
 import { SignStudio } from "@/components/sign-studio";
+import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { isMockMode } from "@/lib/gemini";
-import { DEMO_VERSION } from "@/lib/patch-notes";
 import type { Metadata } from "next";
-import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Camera demo — SignSpeak",
@@ -16,37 +15,23 @@ export default function DemoPage() {
   return (
     <div className="flex min-h-full flex-col">
       <SiteHeader />
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 py-8 sm:px-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-primary">Live demo · v{DEMO_VERSION}</p>
-            <h1 className="font-heading text-3xl font-semibold tracking-tight">
-              Sign, then listen
-            </h1>
-            <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
-              Allow the camera, tap Start signing, and keep your hands in the
-              frame. For the dedicated model, sign{" "}
-              <span className="font-medium text-foreground">one isolated
-              sign</span>{" "}
-              from the 200-word vocab, or several with a short pause after
-              each (hello, lunch, Coca-Cola…). Songs and fluent conversation
-              use Gemini video instead. Unmute so the English can be spoken
-              automatically.
-            </p>
-          </div>
-          <Link
-            href="/"
-            className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-          >
-            Back to overview
-          </Link>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-8 pb-14 sm:px-6 sm:pt-10">
+        <div className="mb-8 grid gap-3 lg:grid-cols-[minmax(0,1.12fr)_minmax(0,0.88fr)] lg:items-end lg:gap-10">
+          <h1 className="text-4xl leading-[1.1] font-bold tracking-tight sm:text-5xl">
+            Sign, then listen
+          </h1>
+          <p className="max-w-[54ch] leading-relaxed text-mist">
+            Sign one word from the 200-sign vocabulary, like hello, lunch or
+            Coca-Cola, or several with a short pause after each. Songs and
+            fluent conversation go to Gemini video instead.
+          </p>
         </div>
-        <PatchNotes compact />
         <SignStudio mode={isMockMode() ? "mock" : "live"} />
+        <div className="mt-14">
+          <PatchNotes compact />
+        </div>
       </main>
-      <footer className="border-t border-border/70 py-6 text-center text-xs text-muted-foreground">
-        Unmute speakers · Keep hands in frame · Feasibility demo, not a certified interpreter
-      </footer>
+      <SiteFooter note="A feasibility demo, not a certified interpreter." />
     </div>
   );
 }

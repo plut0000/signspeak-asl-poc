@@ -1,38 +1,52 @@
 "use client";
 
-import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
+import { SignSpeakMark } from "@/components/signspeak-mark";
 import { DEMO_VERSION } from "@/lib/patch-notes";
-import { Hand } from "lucide-react";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+const NAV = [
+  { href: "/", label: "Overview" },
+  { href: "/demo", label: "Camera demo" },
+] as const;
 
 export function SiteHeader() {
+  const pathname = usePathname();
+
   return (
-    <header className="border-b border-border/70 bg-background/70 backdrop-blur-md">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+    <header className="border-b border-rule">
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3.5 sm:px-6">
         <Link
           href="/"
-          className="flex items-center gap-2.5 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="-mx-1 flex items-center gap-2 rounded-md px-1 py-0.5"
         >
-          <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <Hand className="size-5" aria-hidden="true" />
-          </span>
-          <span className="leading-tight">
-            <span className="block font-heading text-sm font-semibold tracking-tight">
-              SignSpeak
-            </span>
-            <span className="block text-xs text-muted-foreground">
-              ASL → English → voice
-            </span>
-          </span>
+          <SignSpeakMark className="size-8 text-chalk" />
+          <span className="text-lg font-bold tracking-tight">SignSpeak</span>
         </Link>
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <Badge variant="outline" className="h-auto border-primary/30 px-2.5 py-1 text-[0.7rem] text-primary">
-            Demo v{DEMO_VERSION}
-          </Badge>
-          <Badge variant="outline" className="h-auto px-2.5 py-1 text-[0.7rem]">
-            DECA EIP proof of concept
-          </Badge>
-        </div>
+        <nav aria-label="Main" className="flex items-center gap-1 sm:gap-2">
+          {NAV.map((item) => {
+            const current = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={current ? "page" : undefined}
+                className={cn(
+                  "rounded-md px-2.5 py-1.5 text-sm transition-colors",
+                  current
+                    ? "font-bold text-chalk underline decoration-signal decoration-2 underline-offset-[6px]"
+                    : "text-mist hover:text-chalk",
+                )}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+          <span className="ml-2 hidden text-sm text-mist tabular sm:inline">
+            v{DEMO_VERSION}
+          </span>
+        </nav>
       </div>
     </header>
   );
